@@ -16,5 +16,5 @@ func main() {
 		// TODO - print validation errors here? or elsewhere?
 		os.Exit(2)
 	}
-	ctx.FatalIfErrorf(err) // exit(0) if successful, exit(1) on other errors, exit(80) on cli misuse
+	ctx.FatalIfErrorf(err) // exit(0) if successful, exit(1) on other errors, exit(80+) on cli misuse
 }
