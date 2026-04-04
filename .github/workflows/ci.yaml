@@ -1,8 +1,13 @@
 name: CI
 
 on:
-  push:
-    branches: [ main ]
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 # cancel in progress when a new commit is pushed
 concurrency:
