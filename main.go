@@ -1,10 +1,12 @@
 package main
 
-import "github.com/alecthomas/kong"
+import (
+	"github.com/alecthomas/kong"
 
-var cli struct{}
+	"go.treyburn.dev/vanity/internal/cmd"
+)
 
 func main() {
-	ctx := kong.Parse(&cli)
+	ctx := kong.Parse(new(cmd.CLI))
 	ctx.FatalIfErrorf(ctx.Run())
 }
