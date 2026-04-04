@@ -1,2 +1,2 @@
 # vanity
-A static site generator for vanity Go module urls
+A static site generator for redirecting vanity Go module URLs.
