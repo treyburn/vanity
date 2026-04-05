@@ -124,6 +124,8 @@ func TestShouldSkipDir(t *testing.T) {
 	assert.False(t, shouldSkipDir("cmd"))
 	assert.False(t, shouldSkipDir("internal"))
 	assert.False(t, shouldSkipDir("pkg"))
+	assert.True(t, shouldSkipDir("."))
+	assert.True(t, shouldSkipDir(".."))
 }
 
 func TestIsGoSourceFile(t *testing.T) {

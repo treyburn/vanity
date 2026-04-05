@@ -63,6 +63,15 @@ func TestValidateBasic_MissingModuleRepo(t *testing.T) {
 	assert.Contains(t, err.Error(), "modules[0].repo is required")
 }
 
+func TestValidateBasic_InvalidRepoURL_NotURL(t *testing.T) {
+	cfg := validConfig()
+	cfg.Modules = []Module{{Name: "foo", Repo: "https://this is not a URL"}}
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid URL: parse")
+}
+
 func TestValidateBasic_InvalidRepoURL_NoScheme(t *testing.T) {
 	cfg := validConfig()
 	cfg.Modules = []Module{{Name: "foo", Repo: "github.com/example/foo"}}
@@ -220,6 +229,25 @@ func TestValidateBasic_ExitCode(t *testing.T) {
 	var ve ValidationErr
 	require.ErrorAs(t, err, &ve)
 	assert.Equal(t, 2, ve.ExitCode())
+}
+
+func TestValidateFull_BasicInvalidationStillCaught(t *testing.T) {
+	cfg := validConfig()
+	cfg.Domain = "" // invalid - hit in basic validation pass
+	cfg.Modules = []Module{
+		{
+			Name: "foo",
+			Repo: "https://github.com/example/foo",
+			Subpackages: &SubpackageConfig{
+				Mode:      SubpackageModeAuto,
+				LocalPath: "/nonexistent/path",
+			},
+		},
+	}
+
+	err := ValidateFull(context.Background(), cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "domain is required")
 }
 
 func TestValidateFull_LocalPathNotExist(t *testing.T) {
