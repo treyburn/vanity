@@ -32,6 +32,6 @@ func (c *InitCmd) Run() error {
 		return fmt.Errorf("writing %s: %w", configFileName, err)
 	}
 
-	slog.Info("Created %s", configFileName)
+	slog.Info(fmt.Sprintf("Created %s", configFileName))
 	return nil
 }
