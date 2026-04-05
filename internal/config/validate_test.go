@@ -231,6 +231,25 @@ func TestValidateBasic_ExitCode(t *testing.T) {
 	assert.Equal(t, 2, ve.ExitCode())
 }
 
+func TestValidateFull_BasicInvalidationStillCaught(t *testing.T) {
+	cfg := validConfig()
+	cfg.Domain = "" // invalid - hit in basic validation pass
+	cfg.Modules = []Module{
+		{
+			Name: "foo",
+			Repo: "https://github.com/example/foo",
+			Subpackages: &SubpackageConfig{
+				Mode:      SubpackageModeAuto,
+				LocalPath: "/nonexistent/path",
+			},
+		},
+	}
+
+	err := ValidateFull(context.Background(), cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "domain is required")
+}
+
 func TestValidateFull_LocalPathNotExist(t *testing.T) {
 	cfg := validConfig()
 	cfg.Modules = []Module{
