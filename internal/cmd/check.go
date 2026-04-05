@@ -8,11 +8,11 @@ import (
 )
 
 type CheckCmd struct {
-	BasicOnly bool `name:"basic-only" default:"false" help:"Skip repository validation (remote reachability/local path existence)."`
+	SkipRepoValidation bool `name:"skip-repo-validation" default:"false" help:"Skip repository validation (remote reachability/local path existence)."`
 }
 
 func (c *CheckCmd) Run(ctx context.Context, cfg *config.Config) error {
-	if c.BasicOnly {
+	if c.SkipRepoValidation {
 		slog.Info("Running basic validation")
 		if err := config.ValidateBasic(cfg); err != nil {
 			return err

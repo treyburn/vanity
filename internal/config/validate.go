@@ -89,7 +89,7 @@ func ValidateBasic(cfg *Config) error {
 }
 
 // ValidateFull runs ValidateBasic plus expensive remote checks.
-// Default for `vanity check`. Skipped with --basic-only.
+// Default for `vanity check`. Skipped with --skip-repo-validation.
 func ValidateFull(ctx context.Context, cfg *Config) error {
 	if err := ValidateBasic(cfg); err != nil {
 		return err
