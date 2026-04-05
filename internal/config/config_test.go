@@ -133,7 +133,7 @@ domain: go.example.com
 	path := writeTempConfig(t, yaml)
 	_, err := Load(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "modules")
+	assert.Contains(t, err.Error(), "at least one module is required")
 }
 
 func TestLoad_MissingModuleName(t *testing.T) {
