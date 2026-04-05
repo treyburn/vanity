@@ -15,6 +15,15 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 )
 
+// ValidateLocalRepo checks that the given path is a git repository.
+func ValidateLocalRepo(path string) error {
+	_, err := git.PlainOpen(path)
+	if err != nil {
+		return fmt.Errorf("%s is not a git repository: %w", path, err)
+	}
+	return nil
+}
+
 // ValidateRemote checks that a git remote is reachable.
 func ValidateRemote(ctx context.Context, repoURL string) error {
 	// TODO - consider adding retry's here?
