@@ -138,6 +138,44 @@ modules:
 	assert.Contains(t, string(content), `content="go.example.com/foo git https://github.com/example/foo"`)
 }
 
+func TestGenerateCmd_AutoSubpackages(t *testing.T) {
+	// Set up a fake local repo with Go files in subdirectories
+	localRepo := t.TempDir()
+	for _, dir := range []string{"cmd/tool", "pkg/lib", "internal/secret"} {
+		dirPath := filepath.Join(localRepo, dir)
+		require.NoError(t, os.MkdirAll(dirPath, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(dirPath, "main.go"), []byte("package "+filepath.Base(dir)+"\n"), 0o644))
+	}
+	// Root package go file (should not produce a subpackage entry)
+	require.NoError(t, os.WriteFile(filepath.Join(localRepo, "foo.go"), []byte("package foo\n"), 0o644))
+
+	outputDir := filepath.Join(t.TempDir(), "dist")
+	cfg := writeAndLoadConfig(t, `
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
+    subpackages:
+      mode: auto
+      local_path: `+localRepo+`
+      exclude:
+        - "internal/*"
+`)
+	cfg.Output.Dir = outputDir
+
+	cmd := &GenerateCmd{}
+	err := cmd.Run(context.Background(), cfg)
+	require.NoError(t, err)
+
+	// Module page
+	assert.FileExists(t, filepath.Join(outputDir, "foo", "index.html"))
+	// Discovered subpackage pages
+	assert.FileExists(t, filepath.Join(outputDir, "foo", "cmd", "tool", "index.html"))
+	assert.FileExists(t, filepath.Join(outputDir, "foo", "pkg", "lib", "index.html"))
+	// Excluded subpackage should not exist
+	assert.NoFileExists(t, filepath.Join(outputDir, "foo", "internal", "secret", "index.html"))
+}
+
 func TestDiscoverSubpackages_NoSubpackages(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Domain = "go.example.com"
