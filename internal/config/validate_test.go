@@ -63,6 +63,15 @@ func TestValidateBasic_MissingModuleRepo(t *testing.T) {
 	assert.Contains(t, err.Error(), "modules[0].repo is required")
 }
 
+func TestValidateBasic_InvalidRepoURL_NotURL(t *testing.T) {
+	cfg := validConfig()
+	cfg.Modules = []Module{{Name: "foo", Repo: "https://this is not a URL"}}
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid URL: parse")
+}
+
 func TestValidateBasic_InvalidRepoURL_NoScheme(t *testing.T) {
 	cfg := validConfig()
 	cfg.Modules = []Module{{Name: "foo", Repo: "github.com/example/foo"}}
