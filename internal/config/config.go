@@ -31,8 +31,10 @@ const (
 type SubpackageMode string
 
 const (
-	SubpackageModeOff      SubpackageMode = "off"
-	SubpackageModeAuto     SubpackageMode = "auto"
+	SubpackageModeOff  SubpackageMode = "off"
+	SubpackageModeAuto SubpackageMode = "auto"
+	// TODO: this may make more sense as an explicit blocklist (may also make sense to have an explicit allow list?)
+	//  maybe just have auto mode + a fliter?
 	SubpackageModeExplicit SubpackageMode = "explicit"
 )
 
