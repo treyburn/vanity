@@ -17,6 +17,7 @@ import (
 
 // ValidateRemote checks that a git remote is reachable.
 func ValidateRemote(ctx context.Context, repoURL string) error {
+	// TODO - consider adding retry's here?
 	_, err := git.NewRemote(memory.NewStorage(), &gitconfig.RemoteConfig{
 		Name: "origin",
 		URLs: []string{repoURL},
@@ -54,6 +55,7 @@ func DiscoverSubpackages(ctx context.Context, repoURL string, exclude []string, 
 		bfs = osfs.New(cfg.localPath)
 	} else {
 		bfs = memfs.New()
+		// TODO - is it possible to just use the `ListContext` method and walk the dir that way? that would avoid an expensive clone...
 		_, err := git.CloneContext(ctx, memory.NewStorage(), bfs, &git.CloneOptions{
 			URL:   repoURL,
 			Depth: 1,
