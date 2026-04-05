@@ -33,3 +33,6 @@ go.work.sum
 
 # don't include .vanity.yaml
 .vanity.yaml
+
+# don't include the generated files
+dist
