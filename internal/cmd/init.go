@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"go.treyburn.dev/vanity/internal/config"
@@ -20,12 +21,17 @@ func (c *InitCmd) Run() error {
 	if err != nil {
 		return fmt.Errorf("creating %s: %w", configFileName, err)
 	}
-	defer f.Close()
+	defer func() {
+		cErr := f.Close()
+		if cErr != nil {
+			slog.With(slog.Any("error", err)).Debug("Failed to close file")
+		}
+	}()
 
 	if err = config.WriteDefault(f); err != nil {
 		return fmt.Errorf("writing %s: %w", configFileName, err)
 	}
 
-	fmt.Printf("Created %s\n", configFileName)
+	slog.Info("Created %s", configFileName)
 	return nil
 }
