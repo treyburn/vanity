@@ -174,39 +174,12 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	if err = cfg.validate(); err != nil {
+	if err = ValidateBasic(cfg); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
 
 	cfg.Resolve()
 	return cfg, nil
-}
-
-// validate checks required fields and enum values after unmarshalling.
-func (c *Config) validate() error {
-	if c.Domain == "" {
-		return fmt.Errorf("domain is required")
-	}
-	if len(c.Modules) == 0 {
-		return fmt.Errorf("modules is required")
-	}
-	for i, m := range c.Modules {
-		if m.Name == "" {
-			return fmt.Errorf("modules[%d].name is required", i)
-		}
-		if m.Repo == "" {
-			return fmt.Errorf("modules[%d].repo is required", i)
-		}
-		if m.Subpackages != nil && m.Subpackages.Mode != "" {
-			switch m.Subpackages.Mode {
-			case SubpackageModeOff, SubpackageModeAuto, SubpackageModeExplicit:
-				// valid
-			default:
-				return fmt.Errorf("modules[%d].subpackages.mode: unknown value %q", i, m.Subpackages.Mode)
-			}
-		}
-	}
-	return nil
 }
 
 // Resolve fills in per-module fields from defaults. After calling Resolve,

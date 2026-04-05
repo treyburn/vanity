@@ -1,9 +1,11 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/alecthomas/kong"
 
@@ -12,11 +14,16 @@ import (
 )
 
 func main() {
+	// Create a context that cancels on SIGINT (ctrl+c) or SIGTERM (CI/container stop).
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	var c cmd.CLI
 	kongCtx := kong.Parse(&c,
 		kong.Name("vanity"),
 		kong.Description("A static site generator for Go vanity URLs."),
 		kong.UsageOnError(),
+		kong.BindTo(ctx, (*context.Context)(nil)),
 	)
 
 	// Load config (commands that don't need it, like init, skip this)
@@ -42,15 +49,9 @@ func main() {
 		slog.SetDefault(logger)
 	}
 
-	err = kongCtx.Run()
+	err = kongCtx.Run(cfg)
 	if err != nil {
 		logger.With(slog.Any("error", err)).Error("Failed to execute command")
-		if errors.Is(err, cmd.ErrValidationFailed) {
-			os.Exit(2)
-		}
-		os.Exit(1)
 	}
-
-	os.Exit(0)
-
+	kongCtx.FatalIfErrorf(err)
 }

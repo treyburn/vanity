@@ -29,6 +29,19 @@ func TestIntegration_ValidateRemote_Unreachable(t *testing.T) {
 	assert.Contains(t, err.Error(), "not reachable")
 }
 
+func TestIntegration_ValidateLocalRepo(t *testing.T) {
+	// Use the current repo (two levels up from internal/vcs)
+	err := ValidateLocalRepo("../..")
+	require.NoError(t, err)
+}
+
+func TestIntegration_ValidateLocalRepo_NotARepo(t *testing.T) {
+	dir := t.TempDir()
+	err := ValidateLocalRepo(dir)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "is not a git repository")
+}
+
 func TestIntegration_DiscoverSubpackages_Remote(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
