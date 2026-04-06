@@ -37,7 +37,7 @@ func discoverSubpackages(ctx context.Context, cfg *config.Config) (map[string][]
 	result := make(map[string][]string)
 
 	for _, m := range cfg.Modules {
-		if m.Subpackages == nil || m.Subpackages.Mode == config.SubpackageModeOff {
+		if m.Subpackages == nil {
 			continue
 		}
 
@@ -57,6 +57,9 @@ func discoverSubpackages(ctx context.Context, cfg *config.Config) (map[string][]
 
 		case config.SubpackageModeExplicit:
 			result[m.Name] = m.Subpackages.Paths
+		default:
+			// nothing to do is not enabled
+			continue
 		}
 	}
 
