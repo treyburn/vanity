@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -317,35 +318,39 @@ func TestExampleConfig(t *testing.T) {
 }
 
 func TestNewLogger_TextFormat(t *testing.T) {
+	ctx := context.Background()
 	lc := LogConfig{Level: LogLevelDebug, Format: LogFormatText, Color: false}
 	logger, err := lc.NewLogger()
 	require.NoError(t, err)
-	assert.True(t, logger.Enabled(nil, slog.LevelDebug))
-	assert.True(t, logger.Enabled(nil, slog.LevelInfo))
+	assert.True(t, logger.Enabled(ctx, slog.LevelDebug))
+	assert.True(t, logger.Enabled(ctx, slog.LevelInfo))
 }
 
 func TestNewLogger_JSONFormat(t *testing.T) {
+	ctx := context.Background()
 	lc := LogConfig{Level: LogLevelWarn, Format: LogFormatJSON, Color: false}
 	logger, err := lc.NewLogger()
 	require.NoError(t, err)
-	assert.False(t, logger.Enabled(nil, slog.LevelInfo))
-	assert.True(t, logger.Enabled(nil, slog.LevelWarn))
-	assert.True(t, logger.Enabled(nil, slog.LevelError))
+	assert.False(t, logger.Enabled(ctx, slog.LevelInfo))
+	assert.True(t, logger.Enabled(ctx, slog.LevelWarn))
+	assert.True(t, logger.Enabled(ctx, slog.LevelError))
 }
 
 func TestNewLogger_ColorOn(t *testing.T) {
+	ctx := context.Background()
 	lc := LogConfig{Level: LogLevelInfo, Format: LogFormatText, Color: true}
 	logger, err := lc.NewLogger()
 	require.NoError(t, err)
-	assert.True(t, logger.Enabled(nil, slog.LevelInfo))
+	assert.True(t, logger.Enabled(ctx, slog.LevelInfo))
 }
 
 func TestNewLogger_ErrorLevel(t *testing.T) {
+	ctx := context.Background()
 	lc := LogConfig{Level: LogLevelError, Format: LogFormatText}
 	logger, err := lc.NewLogger()
 	require.NoError(t, err)
-	assert.False(t, logger.Enabled(nil, slog.LevelWarn))
-	assert.True(t, logger.Enabled(nil, slog.LevelError))
+	assert.False(t, logger.Enabled(ctx, slog.LevelWarn))
+	assert.True(t, logger.Enabled(ctx, slog.LevelError))
 }
 
 func TestNewLogger_UnknownLevel(t *testing.T) {
