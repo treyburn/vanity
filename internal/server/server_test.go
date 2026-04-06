@@ -74,7 +74,7 @@ func TestServe_GracefulShutdown(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	srv := New(0, true)
+	srv := New(0, false)
 
 	errCh := make(chan error, 1)
 	ready := make(chan struct{}, 1)
