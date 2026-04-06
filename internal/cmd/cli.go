@@ -7,6 +7,7 @@ type CLI struct {
 	Preview  PreviewCmd  `cmd:"" help:"Generate in-memory and serve via local HTTP."`
 	Serve    ServeCmd    `cmd:"" help:"Serve already-generated output directory."`
 	Clean    CleanCmd    `cmd:"" help:"Remove the generated output directory."`
+	Version  VersionCmd  `cmd:"" help:"Print version information."`
 
 	// Global flags (env vars override YAML, flags override env vars)
 	LogLevel  string `name:"log-level" env:"VANITY_LOG_LEVEL" help:"Override log level (debug, info, warn, error)."`
