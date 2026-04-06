@@ -76,9 +76,10 @@ formatters:
   settings:
     gci:
       sections:
-        - standard
-        - dot
         - blank
+        - dot
+        - standard
+        - alias
         - default
         - localmodule
       custom-order: true
