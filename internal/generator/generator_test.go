@@ -4,9 +4,9 @@ import (
 	"flag"
 	"io/fs"
 	"os"
-	"testing/fstest"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,8 +15,6 @@ import (
 )
 
 var update = flag.Bool("update", false, "update golden files")
-
-func boolPtr(v bool) *bool { return &v }
 
 // minimalConfig returns a resolved config with a single module and all output enabled.
 func minimalConfig() *config.Config {
@@ -41,7 +39,7 @@ func minimalConfig() *config.Config {
 				Name:     "foo",
 				Repo:     "https://github.com/example/foo",
 				Branch:   "main",
-				GoSource: boolPtr(true),
+				GoSource: new(true),
 				Redirect: "https://pkg.go.dev/go.example.com/foo",
 			},
 		},
@@ -79,7 +77,7 @@ func TestGenerate_SingleModule(t *testing.T) {
 func TestGenerate_GoSourceDisabled(t *testing.T) {
 	cfg := minimalConfig()
 	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
-	cfg.Modules[0].GoSource = boolPtr(false)
+	cfg.Modules[0].GoSource = new(false)
 
 	gen, err := New()
 	require.NoError(t, err)
@@ -134,7 +132,7 @@ func TestGenerate_MultipleModules(t *testing.T) {
 		Name:     "bar",
 		Repo:     "https://github.com/example/bar",
 		Branch:   "develop",
-		GoSource: boolPtr(true),
+		GoSource: new(true),
 		Redirect: "https://pkg.go.dev/go.example.com/bar",
 	})
 
