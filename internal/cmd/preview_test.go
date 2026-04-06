@@ -31,7 +31,9 @@ modules:
 
 	// Wait for server to be ready
 	require.Eventually(t, func() bool {
-		resp, err := http.Get("http://localhost:8080/foo/")
+		req, err := http.NewRequest(http.MethodGet, "http://localhost:8080/foo/", nil)
+		require.NoError(t, err)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return false
 		}
@@ -39,7 +41,9 @@ modules:
 		return resp.StatusCode == http.StatusOK
 	}, 2*time.Second, 25*time.Millisecond)
 
-	resp, err := http.Get("http://localhost:8080/foo/?go-get=1")
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8080/foo/?go-get=1", nil)
+	require.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer func() { assert.NoError(t, resp.Body.Close()) }()
 
