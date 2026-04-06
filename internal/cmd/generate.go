@@ -62,7 +62,7 @@ func discoverSubpackages(ctx context.Context, cfg *config.Config) (map[string][]
 			// not enabled - so nothing to do
 			continue
 		default:
-			return nil, fmt.Errorf("unknown subpackage mode: %s", m.Subpackages.Mode)
+			return nil, config.NewValidationError(fmt.Sprintf("unknown subpackage mode: %s", m.Subpackages.Mode))
 		}
 	}
 
