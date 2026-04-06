@@ -26,7 +26,8 @@ func TestServe_ModulePage(t *testing.T) {
 
 	handler := fileHandler(fs)
 
-	req := httptest.NewRequest(http.MethodGet, "/foo/?go-get=1", nil)
+	ctx := context.Background()
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/foo/?go-get=1", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -46,7 +47,8 @@ func TestServe_IndexPage(t *testing.T) {
 
 	handler := fileHandler(fs)
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	ctx := context.Background()
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -61,7 +63,8 @@ func TestServe_NotFound(t *testing.T) {
 
 	handler := fileHandler(fs)
 
-	req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
+	ctx := context.Background()
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/nonexistent", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 

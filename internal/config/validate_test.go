@@ -226,7 +226,7 @@ func TestValidateBasic_ExitCode(t *testing.T) {
 	err := ValidateBasic(cfg)
 	require.Error(t, err)
 
-	var ve ValidationErr
+	var ve ValidationError
 	require.ErrorAs(t, err, &ve)
 	assert.Equal(t, 2, ve.ExitCode())
 }
@@ -349,9 +349,9 @@ func TestValidateFull_UnreachableRepo(t *testing.T) {
 	assert.Contains(t, err.Error(), "not reachable")
 }
 
-// assertIsValidationErr verifies that the error tree contains a ValidationErr.
+// assertIsValidationErr verifies that the error tree contains a ValidationError.
 func assertIsValidationErr(t *testing.T, err error) {
 	t.Helper()
-	var ve ValidationErr
+	var ve ValidationError
 	assert.True(t, errors.As(err, &ve), "expected error to contain ValidationErr")
 }

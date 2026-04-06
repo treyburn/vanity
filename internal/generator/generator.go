@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
-	html "html/template"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"testing/fstest"
+
+	html "html/template"
 	text "text/template"
 
 	"go.treyburn.dev/vanity/internal/config"
@@ -110,16 +111,17 @@ func (gc *generateConfig) writer(outputDir, path string) (io.WriteCloser, error)
 		return &memWriter{path: path, fs: gc.memFS}, nil
 	}
 	fullPath := filepath.Join(outputDir, path)
-	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0o750); err != nil {
 		return nil, err
 	}
-	return os.Create(fullPath)
+	return os.Create(filepath.Clean(fullPath))
 }
 
 // memWriter is an io.WriteCloser that accumulates bytes and stores them
 // into a MapFS entry on Close.
 type memWriter struct {
 	bytes.Buffer
+
 	path string
 	fs   fstest.MapFS
 }

@@ -10,14 +10,18 @@ import (
 	"go.treyburn.dev/vanity/internal/vcs"
 )
 
-// ValidationErr wraps a validation error and provides an exit code of 2
+// ValidationError wraps a validation error and provides an exit code of 2
 // via Kong's ExitCoder interface.
-type ValidationErr struct {
+type ValidationError struct {
 	error
 }
 
-func (v ValidationErr) ExitCode() int {
+func (v ValidationError) ExitCode() int {
 	return 2
+}
+
+func NewValidationError(msg string) ValidationError {
+	return ValidationError{errors.New(msg)}
 }
 
 // ValidateBasic performs fast, local validation. Called by check, generate,
@@ -30,22 +34,22 @@ func ValidateBasic(cfg *Config) error {
 	case LogLevelDebug, LogLevelInfo, LogLevelWarn, LogLevelError:
 		// valid
 	default:
-		errs = errors.Join(errs, ValidationErr{fmt.Errorf("log.level: unknown value %q (must be debug, info, warn, or error)", cfg.Log.Level)})
+		errs = errors.Join(errs, ValidationError{fmt.Errorf("log.level: unknown value %q (must be debug, info, warn, or error)", cfg.Log.Level)})
 	}
 
 	switch cfg.Log.Format {
 	case LogFormatText, LogFormatJSON:
 		// valid
 	default:
-		errs = errors.Join(errs, ValidationErr{fmt.Errorf("log.format: unknown value %q (must be text or json)", cfg.Log.Format)})
+		errs = errors.Join(errs, ValidationError{fmt.Errorf("log.format: unknown value %q (must be text or json)", cfg.Log.Format)})
 	}
 
 	// Required fields
 	if cfg.Domain == "" {
-		errs = errors.Join(errs, ValidationErr{fmt.Errorf("domain is required")})
+		errs = errors.Join(errs, ValidationError{fmt.Errorf("domain is required")})
 	}
 	if len(cfg.Modules) == 0 {
-		errs = errors.Join(errs, ValidationErr{fmt.Errorf("at least one module is required")})
+		errs = errors.Join(errs, ValidationError{fmt.Errorf("at least one module is required")})
 	}
 
 	// Per-module checks
@@ -53,21 +57,21 @@ func ValidateBasic(cfg *Config) error {
 	seenRepo := make(map[string]bool)
 	for i, m := range cfg.Modules {
 		if m.Name == "" {
-			errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].name is required", i)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].name is required", i)})
 		}
 		if m.Repo == "" {
-			errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].repo is required", i)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo is required", i)})
 		} else if err := validateRepoURL(m.Repo); err != nil {
-			errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].repo: %s", i, err)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo: %w", i, err)})
 		}
 
 		if m.Name != "" && seen[m.Name] {
-			errs = errors.Join(errs, ValidationErr{fmt.Errorf("duplicate module name: %q", m.Name)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("duplicate module name: %q", m.Name)})
 		}
 		seen[m.Name] = true
 
 		if m.Repo != "" && seenRepo[m.Repo] {
-			errs = errors.Join(errs, ValidationErr{fmt.Errorf("duplicate repo URL: %q", m.Repo)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("duplicate repo URL: %q", m.Repo)})
 		}
 		seenRepo[m.Repo] = true
 
@@ -76,11 +80,11 @@ func ValidateBasic(cfg *Config) error {
 			case SubpackageModeOff, SubpackageModeAuto, SubpackageModeExplicit:
 				// valid
 			default:
-				errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].subpackages.mode: unknown value %q (must be off, auto, or explicit)", i, m.Subpackages.Mode)})
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.mode: unknown value %q (must be off, auto, or explicit)", i, m.Subpackages.Mode)})
 			}
 
 			if m.Subpackages.Mode == SubpackageModeExplicit && len(m.Subpackages.Paths) == 0 {
-				errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].subpackages.paths is required when mode is explicit", i)})
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.paths is required when mode is explicit", i)})
 			}
 		}
 	}
@@ -99,17 +103,17 @@ func ValidateFull(ctx context.Context, cfg *Config) error {
 
 	for i, m := range cfg.Modules {
 		if err := vcs.ValidateRemote(ctx, m.Repo); err != nil {
-			errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].repo: %s", i, err)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo: %w", i, err)})
 		}
 
 		if m.Subpackages != nil && m.Subpackages.LocalPath != "" {
 			info, err := os.Stat(m.Subpackages.LocalPath)
 			if err != nil {
-				errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].subpackages.local_path: %q does not exist", i, m.Subpackages.LocalPath)})
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.local_path: %q does not exist", i, m.Subpackages.LocalPath)})
 			} else if !info.IsDir() {
-				errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].subpackages.local_path: %q is not a directory", i, m.Subpackages.LocalPath)})
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.local_path: %q is not a directory", i, m.Subpackages.LocalPath)})
 			} else if err := vcs.ValidateLocalRepo(m.Subpackages.LocalPath); err != nil {
-				errs = errors.Join(errs, ValidationErr{fmt.Errorf("modules[%d].subpackages.local_path: %w", i, err)})
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.local_path: %w", i, err)})
 			}
 		}
 	}

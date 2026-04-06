@@ -1,0 +1,91 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+#    - cyclop
+    - dogsled
+    - dupl
+    - embeddedstructfieldcheck
+    - errname
+    - errorlint
+    - errorlint
+    - exhaustive
+#    - exhaustruct
+    - exptostd
+#    - funlen
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - intrange
+    - iotamixing
+    - noctx
+    - nolintlint
+    - reassign
+    - recvcheck
+#    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - tagalign
+    - unconvert
+  disable:
+    - lll
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gocognit
+          - cyclop
+          - funlen
+          - goconst
+          - gosec
+  settings:
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+issues:
+  fix: false
+  # Maximum issues count per one linter.
+  # Set to 0 to disable.
+  # Default: 50
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text.
+  # Set to 0 to disable.
+  # Default: 3
+  max-same-issues: 0
+severity:
+  default: error
+
+formatters:
+  enable:
+    - gci
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - blank
+        - dot
+        - standard
+        - alias
+        - default
+        - localmodule
+      custom-order: true
+    gofumpt:
+      module-path: go.treyburn.dev/vanity
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - go.treyburn.dev/vanity

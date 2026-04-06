@@ -7,11 +7,12 @@ import (
 	"sort"
 	"strings"
 
+	gitconfig "github.com/go-git/go-git/v5/config"
+
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5"
-	gitconfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/storage/memory"
 )
 

@@ -37,7 +37,7 @@ func TestCheckCmd_BasicInvalid(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "domain is required")
 
-	var ve config.ValidationErr
+	var ve config.ValidationError
 	assert.ErrorAs(t, err, &ve)
 	assert.Equal(t, 2, ve.ExitCode())
 }

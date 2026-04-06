@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	orderedmap "github.com/wk8/go-ordered-map/v2"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -35,13 +37,13 @@ func (s *Server) logCurlHints(baseURL string, content fs.FS) {
 	const maxSubpackageHints = 3
 
 	// modules maps top-level name -> list of subpackage paths
-	modules := make(map[string][]string)
-	var order []string
+	mods := orderedmap.New[string, []string]()
 
 	if err := fs.WalkDir(content, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || path.Base(p) != "index.html" {
 			return nil
 		}
+
 		// p is like "vanity/index.html" or "vanity/internal/cmd/index.html"
 		dir := path.Dir(p)
 		if dir == "." {
@@ -49,26 +51,26 @@ func (s *Server) logCurlHints(baseURL string, content fs.FS) {
 		}
 		parts := strings.SplitN(dir, "/", 2)
 		root := parts[0]
-		if _, seen := modules[root]; !seen {
-			order = append(order, root)
-			modules[root] = nil
+		values, ok := mods.Get(root)
+		if !ok {
+			mods.Set(root, nil)
 		}
 		if len(parts) == 2 {
-			modules[root] = append(modules[root], parts[1])
+			mods.Set(root, append(values, parts[1]))
 		}
 		return nil
 	}); err != nil {
 		slog.Debug("failed to find subpackages", "error", err)
 	}
 
-	for _, name := range order {
-		slog.Info(fmt.Sprintf("try: curl -sL '%s/%s?go-get=1'", baseURL, name))
-		for i, sub := range modules[name] {
+	for pair := mods.Oldest(); pair != nil; pair = pair.Next() {
+		slog.Info(fmt.Sprintf("try: curl -sL '%s/%s?go-get=1'", baseURL, pair.Key))
+		for i, sub := range pair.Value {
 			if i >= maxSubpackageHints {
 				slog.Info("omitting further subpackages...")
 				break
 			}
-			slog.Info(fmt.Sprintf("try: curl -sL '%s/%s/%s?go-get=1'", baseURL, name, sub))
+			slog.Info(fmt.Sprintf("try: curl -sL '%s/%s/%s?go-get=1'", baseURL, pair.Key, sub))
 		}
 	}
 }
@@ -89,8 +91,9 @@ func fileHandler(content fs.FS) http.Handler {
 // Blocks until the context is canceled (e.g., SIGINT/SIGTERM), then shuts down gracefully.
 func (s *Server) Serve(ctx context.Context, content fs.FS) error {
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.port),
-		Handler: fileHandler(content),
+		Addr:        fmt.Sprintf(":%d", s.port),
+		Handler:     fileHandler(content),
+		ReadTimeout: 5 * time.Second,
 	}
 
 	if !s.quiet {
@@ -104,7 +107,7 @@ func (s *Server) Serve(ctx context.Context, content fs.FS) error {
 	go func() {
 		<-ctx.Done()
 		slog.Info("shutting down server")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			slog.Error("failed to shutdown server", "error", err)

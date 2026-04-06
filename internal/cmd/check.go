@@ -8,7 +8,7 @@ import (
 )
 
 type CheckCmd struct {
-	SkipRepoValidation bool `name:"skip-repo-validation" default:"false" help:"Skip repository validation (remote reachability/local path existence)."`
+	SkipRepoValidation bool `default:"false" help:"Skip repository validation (remote reachability/local path existence)." name:"skip-repo-validation"`
 }
 
 func (c *CheckCmd) Run(ctx context.Context, cfg *config.Config) error {
