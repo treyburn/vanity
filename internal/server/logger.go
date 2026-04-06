@@ -26,7 +26,7 @@ type slogEntry struct {
 	from   string
 }
 
-func (e *slogEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, _ interface{}) {
+func (e *slogEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration, _ any) {
 	slog.Info("request",
 		"method", e.method,
 		"path", e.path,
@@ -37,7 +37,7 @@ func (e *slogEntry) Write(status, bytes int, header http.Header, elapsed time.Du
 	)
 }
 
-func (e *slogEntry) Panic(v interface{}, stack []byte) {
+func (e *slogEntry) Panic(v any, stack []byte) {
 	slog.Error("request panic",
 		"method", e.method,
 		"path", e.path,
