@@ -20,6 +20,10 @@ func (v ValidationError) ExitCode() int {
 	return 2
 }
 
+func NewValidationError(msg string) ValidationError {
+	return ValidationError{errors.New(msg)}
+}
+
 // ValidateBasic performs fast, local validation. Called by check, generate,
 // and preview before doing work.
 func ValidateBasic(cfg *Config) error {
