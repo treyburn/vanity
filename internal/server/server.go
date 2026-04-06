@@ -89,8 +89,9 @@ func fileHandler(content fs.FS) http.Handler {
 // Blocks until the context is canceled (e.g., SIGINT/SIGTERM), then shuts down gracefully.
 func (s *Server) Serve(ctx context.Context, content fs.FS) error {
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.port),
-		Handler: fileHandler(content),
+		Addr:        fmt.Sprintf(":%d", s.port),
+		Handler:     fileHandler(content),
+		ReadTimeout: 5 * time.Second, // this prevents a slow loris attack
 	}
 
 	if !s.quiet {
