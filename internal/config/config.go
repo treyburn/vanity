@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/goccy/go-yaml"
 	"github.com/lmittmann/tint"
@@ -163,7 +164,7 @@ func ExampleConfig() *Config {
 // Load reads .vanity.yaml from the given path, applying defaults for
 // any unspecified fields, then resolves per-module inheritance.
 func Load(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, fmt.Errorf("reading config: %w", err)
 	}
