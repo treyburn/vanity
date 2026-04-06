@@ -76,7 +76,7 @@ func (s *Server) logCurlHints(baseURL string, content fs.FS) {
 // fileHandler builds the chi router for serving static content from the given filesystem.
 func fileHandler(content fs.FS) http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(middleware.RequestLogger(new(slogFormatter)))
 	r.Use(middleware.Recoverer)
 
 	fileServer := http.FileServerFS(content)
