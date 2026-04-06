@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"go.treyburn.dev/vanity/internal/config"
@@ -57,9 +58,11 @@ func discoverSubpackages(ctx context.Context, cfg *config.Config) (map[string][]
 
 		case config.SubpackageModeExplicit:
 			result[m.Name] = m.Subpackages.Paths
-		default:
-			// nothing to do is not enabled
+		case config.SubpackageModeOff:
+			// not enabled - so nothing to do
 			continue
+		default:
+			return nil, fmt.Errorf("unknown subpackage mode: %s", m.Subpackages.Mode)
 		}
 	}
 
