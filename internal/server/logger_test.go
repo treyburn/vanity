@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestSlogFormatter_LogsRequest(t *testing.T) {
+	ctx := context.Background()
 	var buf bytes.Buffer
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
 	defer slog.SetDefault(slog.Default())
@@ -20,7 +22,7 @@ func TestSlogFormatter_LogsRequest(t *testing.T) {
 		"foo/index.html": &fstest.MapFile{Data: []byte("<html>hello</html>")},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/foo/?go-get=1", nil)
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/foo/?go-get=1", nil)
 	rec := httptest.NewRecorder()
 	fileHandler(fs).ServeHTTP(rec, req)
 
@@ -32,11 +34,12 @@ func TestSlogFormatter_LogsRequest(t *testing.T) {
 }
 
 func TestSlogFormatter_Logs404(t *testing.T) {
+	ctx := context.Background()
 	var buf bytes.Buffer
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
 	defer slog.SetDefault(slog.Default())
 
-	req := httptest.NewRequest(http.MethodGet, "/missing", nil)
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/missing", nil)
 	rec := httptest.NewRecorder()
 	fileHandler(fstest.MapFS{}).ServeHTTP(rec, req)
 
@@ -45,11 +48,12 @@ func TestSlogFormatter_Logs404(t *testing.T) {
 }
 
 func TestSlogFormatter_Panics(t *testing.T) {
+	ctx := context.Background()
 	var buf bytes.Buffer
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
 	defer slog.SetDefault(slog.Default())
 
-	req := httptest.NewRequest(http.MethodGet, "/missing", nil)
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/missing", nil)
 	rec := httptest.NewRecorder()
 	fileHandler(nil).ServeHTTP(rec, req)
 

@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
+	orderedmap "github.com/wk8/go-ordered-map/v2"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 // Server serves static vanity URL pages.

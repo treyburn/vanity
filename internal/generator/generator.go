@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
-	html "html/template"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"testing/fstest"
+
+	html "html/template"
 	text "text/template"
 
 	"go.treyburn.dev/vanity/internal/config"
