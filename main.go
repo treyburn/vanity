@@ -28,7 +28,7 @@ func main() {
 
 	// Load config (commands that don't need it, like init, skip this)
 	cfg, err := config.Load(".vanity.yaml")
-	if err != nil && kongCtx.Command() != "init" {
+	if err != nil && kongCtx.Command() != "init" && kongCtx.Command() != "version" {
 		kongCtx.FatalIfErrorf(err)
 	}
 
@@ -47,11 +47,12 @@ func main() {
 			kongCtx.FatalIfErrorf(err)
 		}
 		slog.SetDefault(logger)
+		slog.Debug("config loaded", "domain", cfg.Domain, "modules", len(cfg.Modules))
 	}
 
 	err = kongCtx.Run(cfg)
 	if err != nil {
-		logger.With(slog.Any("error", err)).Error("Failed to execute command")
+		logger.Error("failed to execute command", "error", err)
 	}
 	kongCtx.FatalIfErrorf(err)
 }
