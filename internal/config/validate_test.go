@@ -236,11 +236,11 @@ func TestValidateFull_BasicInvalidationStillCaught(t *testing.T) {
 	cfg.Domain = "" // invalid - hit in basic validation pass
 	cfg.Modules = []Module{
 		{
-			Name: "foo",
-			Repo: "https://github.com/example/foo",
+			Name:      "foo",
+			Repo:      "https://github.com/example/foo",
+			LocalPath: "/nonexistent/path",
 			Subpackages: &SubpackageConfig{
-				Mode:      SubpackageModeAuto,
-				LocalPath: "/nonexistent/path",
+				Mode: SubpackageModeAuto,
 			},
 		},
 	}
@@ -254,12 +254,9 @@ func TestValidateFull_LocalPathNotExist(t *testing.T) {
 	cfg := validConfig()
 	cfg.Modules = []Module{
 		{
-			Name: "foo",
-			Repo: "https://github.com/example/foo",
-			Subpackages: &SubpackageConfig{
-				Mode:      SubpackageModeAuto,
-				LocalPath: "/nonexistent/path",
-			},
+			Name:      "foo",
+			Repo:      "https://github.com/example/foo",
+			LocalPath: "/nonexistent/path",
 		},
 	}
 
@@ -276,12 +273,9 @@ func TestValidateFull_LocalPathNotDir(t *testing.T) {
 	cfg := validConfig()
 	cfg.Modules = []Module{
 		{
-			Name: "foo",
-			Repo: "https://github.com/example/foo",
-			Subpackages: &SubpackageConfig{
-				Mode:      SubpackageModeAuto,
-				LocalPath: filePath,
-			},
+			Name:      "foo",
+			Repo:      "https://github.com/example/foo",
+			LocalPath: filePath,
 		},
 	}
 
@@ -296,12 +290,9 @@ func TestValidateFull_LocalPathNotGitRepo(t *testing.T) {
 	cfg := validConfig()
 	cfg.Modules = []Module{
 		{
-			Name: "foo",
-			Repo: "https://github.com/example/foo",
-			Subpackages: &SubpackageConfig{
-				Mode:      SubpackageModeAuto,
-				LocalPath: dir,
-			},
+			Name:      "foo",
+			Repo:      "https://github.com/example/foo",
+			LocalPath: dir,
 		},
 	}
 
@@ -318,12 +309,9 @@ func TestValidateFull_LocalPathValid(t *testing.T) {
 	cfg := validConfig()
 	cfg.Modules = []Module{
 		{
-			Name: "foo",
-			Repo: "https://github.com/treyburn/vanity",
-			Subpackages: &SubpackageConfig{
-				Mode:      SubpackageModeAuto,
-				LocalPath: "../..", // escape from here to this repo's root
-			},
+			Name:      "foo",
+			Repo:      "https://github.com/treyburn/vanity",
+			LocalPath: "../..", // escape from here to this repo's root
 		},
 	}
 

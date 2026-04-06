@@ -188,7 +188,7 @@ modules:
 }
 
 func TestLoad_FileNotFound(t *testing.T) {
-	_, err := Load("/nonexistent/.vanity.yaml")
+	_, err := Load("/nonexistent/.vanity.yml")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reading config")
 }
@@ -261,7 +261,7 @@ func TestResolve_ModuleOverridesDefaults(t *testing.T) {
 	assert.Equal(t, "https://custom.example.com/docs", m.Redirect)
 }
 
-func TestResolve_SubpackageModeDefaultsToOff(t *testing.T) {
+func TestResolve_SubpackageModeDefaultsToAuto(t *testing.T) {
 	cfg := &Config{
 		Domain:   "go.example.com",
 		Defaults: DefaultsConfig{Branch: "main", GoSource: true, RedirectRoot: "https://pkg.go.dev"},
@@ -270,14 +270,14 @@ func TestResolve_SubpackageModeDefaultsToOff(t *testing.T) {
 				Name:        "foo",
 				Repo:        "https://github.com/example/foo",
 				Subpackages: &SubpackageConfig{
-					// Mode is empty string — should default to "off"
+					// Mode is empty string — should default to "auto"
 				},
 			},
 		},
 	}
 
 	cfg.Resolve()
-	assert.Equal(t, SubpackageModeOff, cfg.Modules[0].Subpackages.Mode)
+	assert.Equal(t, SubpackageModeAuto, cfg.Modules[0].Subpackages.Mode)
 }
 
 func TestImportPath(t *testing.T) {
@@ -387,7 +387,7 @@ func loadFromString(t *testing.T, content string) *Config {
 func writeTempConfig(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()
-	path := filepath.Join(dir, ".vanity.yaml")
+	path := filepath.Join(dir, ConfigFileName)
 	err := os.WriteFile(path, []byte(content), 0o644)
 	require.NoError(t, err)
 	return path

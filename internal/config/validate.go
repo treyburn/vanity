@@ -106,14 +106,14 @@ func ValidateFull(ctx context.Context, cfg *Config) error {
 			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo: %w", i, err)})
 		}
 
-		if m.Subpackages != nil && m.Subpackages.LocalPath != "" {
-			info, err := os.Stat(m.Subpackages.LocalPath)
+		if m.LocalPath != "" {
+			info, err := os.Stat(m.LocalPath)
 			if err != nil {
-				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.local_path: %q does not exist", i, m.Subpackages.LocalPath)})
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].local_path: %q does not exist", i, m.LocalPath)})
 			} else if !info.IsDir() {
-				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.local_path: %q is not a directory", i, m.Subpackages.LocalPath)})
-			} else if err := vcs.ValidateLocalRepo(m.Subpackages.LocalPath); err != nil {
-				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].subpackages.local_path: %w", i, err)})
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].local_path: %q is not a directory", i, m.LocalPath)})
+			} else if err := vcs.ValidateLocalRepo(m.LocalPath); err != nil {
+				errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].local_path: %w", i, err)})
 			}
 		}
 	}

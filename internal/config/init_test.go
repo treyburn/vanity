@@ -52,6 +52,14 @@ func TestWriteDefault_RoundTrips(t *testing.T) {
 	require.Len(t, cfg.Modules, 1)
 	assert.Equal(t, example.Modules[0].Name, cfg.Modules[0].Name)
 	assert.Equal(t, example.Modules[0].Repo, cfg.Modules[0].Repo)
+	assert.Equal(t, example.Modules[0].Branch, cfg.Modules[0].Branch)
+	assert.Equal(t, example.Modules[0].GoSource, cfg.Modules[0].GoSource)
+	assert.Equal(t, example.Modules[0].Redirect, cfg.Modules[0].Redirect)
+	assert.Equal(t, example.Modules[0].LocalPath, cfg.Modules[0].LocalPath)
+	require.NotNil(t, cfg.Modules[0].Subpackages)
+	assert.Equal(t, example.Modules[0].Subpackages.Mode, cfg.Modules[0].Subpackages.Mode)
+	assert.Equal(t, example.Modules[0].Subpackages.Exclude, cfg.Modules[0].Subpackages.Exclude)
+	assert.Equal(t, example.Modules[0].Subpackages.Paths, cfg.Modules[0].Subpackages.Paths)
 }
 
 func TestCommentedDefault_AllFieldsCovered(t *testing.T) {
@@ -77,6 +85,14 @@ func TestCommentedDefault_AllFieldsCovered(t *testing.T) {
 		"$.modules",
 		"$.modules[0].name",
 		"$.modules[0].repo",
+		"$.modules[0].branch",
+		"$.modules[0].go_source",
+		"$.modules[0].redirect",
+		"$.modules[0].local_path",
+		"$.modules[0].subpackages",
+		"$.modules[0].subpackages.mode",
+		"$.modules[0].subpackages.exclude",
+		"$.modules[0].subpackages.paths",
 	}
 
 	for _, key := range expectedKeys {
