@@ -120,6 +120,7 @@ func (gc *generateConfig) writer(outputDir, path string) (io.WriteCloser, error)
 // into a MapFS entry on Close.
 type memWriter struct {
 	bytes.Buffer
+
 	path string
 	fs   fstest.MapFS
 }
