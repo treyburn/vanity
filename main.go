@@ -54,5 +54,5 @@ func main() {
 		slog.Error("failed to execute command", "error", err)
 		kongCtx.FatalIfErrorf(err)
 	}
-	os.Exit(0)
+	// if no issues then will exit with 0
 }
