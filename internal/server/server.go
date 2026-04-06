@@ -91,7 +91,7 @@ func (s *Server) Serve(ctx context.Context, content fs.FS) error {
 	srv := &http.Server{
 		Addr:        fmt.Sprintf(":%d", s.port),
 		Handler:     fileHandler(content),
-		ReadTimeout: 5 * time.Second, // this prevents a slow loris attack
+		ReadTimeout: 5 * time.Second,
 	}
 
 	if !s.quiet {
