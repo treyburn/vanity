@@ -27,7 +27,7 @@ func main() {
 	)
 
 	// Load config
-	cfg, err := config.Load(".vanity.yaml")
+	cfg, err := config.Load(config.ConfigFileName)
 	// init and version cmd's don't require the config to exist - so it's ok to continue
 	if err != nil && kongCtx.Command() != "init" && kongCtx.Command() != "version" {
 		kongCtx.FatalIfErrorf(err)

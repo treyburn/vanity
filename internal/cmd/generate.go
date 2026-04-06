@@ -46,8 +46,8 @@ func discoverSubpackages(ctx context.Context, cfg *config.Config) (map[string][]
 		case config.SubpackageModeAuto:
 			slog.Info("discovering subpackages", "module", m.Name)
 			var opts []vcs.Option
-			if m.Subpackages.LocalPath != "" {
-				opts = append(opts, vcs.WithLocalPath(m.Subpackages.LocalPath))
+			if m.LocalPath != "" {
+				opts = append(opts, vcs.WithLocalPath(m.LocalPath))
 			}
 			pkgs, err := vcs.DiscoverSubpackages(ctx, m.Repo, m.Subpackages.Exclude, opts...)
 			if err != nil {

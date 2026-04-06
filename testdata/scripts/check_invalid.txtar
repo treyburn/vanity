@@ -2,7 +2,7 @@
 ! exec vanity check --skip-repo-validation
 stderr 'domain is required'
 
--- .vanity.yaml --
+-- .vanity.yml --
 domain: ""
 modules:
   - name: foo

@@ -2,10 +2,10 @@
 
 # Init creates config
 exec vanity init
-exists .vanity.yaml
+exists .vanity.yml
 
 # Overwrite with a real config
-cp valid.yaml .vanity.yaml
+cp valid.yml .vanity.yml
 
 # Check passes
 exec vanity check --skip-repo-validation
@@ -24,7 +24,7 @@ grep 'go.example.com/mylib git https://github.com/example/mylib' dist/mylib/inde
 exec vanity clean
 ! exists dist
 
--- valid.yaml --
+-- valid.yml --
 domain: go.example.com
 modules:
   - name: mylib

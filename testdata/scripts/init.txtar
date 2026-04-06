@@ -1,6 +1,6 @@
-# Test that init creates a .vanity.yaml file
+# Test that init creates a .vanity.yml file
 exec vanity init
-exists .vanity.yaml
+exists .vanity.yml
 
 # Test that init refuses to overwrite
 ! exec vanity init

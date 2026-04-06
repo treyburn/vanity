@@ -31,8 +31,8 @@ go.work.sum
 .idea/
 .vscode/
 
-# don't include .vanity.yaml
-.vanity.yaml
+# don't include .vanity.yml
+.vanity.yml
 
 # don't include the generated files
 dist

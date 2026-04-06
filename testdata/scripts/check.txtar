@@ -2,7 +2,7 @@
 exec vanity check --skip-repo-validation
 stderr 'basic validation passed'
 
--- .vanity.yaml --
+-- .vanity.yml --
 domain: go.example.com
 modules:
   - name: foo

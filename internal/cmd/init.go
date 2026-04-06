@@ -8,18 +8,16 @@ import (
 	"go.treyburn.dev/vanity/internal/config"
 )
 
-const configFileName = ".vanity.yaml"
-
 type InitCmd struct{}
 
 func (c *InitCmd) Run() error {
-	if _, err := os.Stat(configFileName); err == nil {
-		return fmt.Errorf("%s already exists", configFileName)
+	if _, err := os.Stat(config.ConfigFileName); err == nil {
+		return fmt.Errorf("%s already exists", config.ConfigFileName)
 	}
 
-	f, err := os.Create(configFileName)
+	f, err := os.Create(config.ConfigFileName)
 	if err != nil {
-		return fmt.Errorf("creating %s: %w", configFileName, err)
+		return fmt.Errorf("creating %s: %w", config.ConfigFileName, err)
 	}
 	defer func() {
 		cErr := f.Close()
@@ -29,9 +27,9 @@ func (c *InitCmd) Run() error {
 	}()
 
 	if err = config.WriteDefault(f); err != nil {
-		return fmt.Errorf("writing %s: %w", configFileName, err)
+		return fmt.Errorf("writing %s: %w", config.ConfigFileName, err)
 	}
 
-	slog.Info("created config file", "path", configFileName)
+	slog.Info("created config file", "path", config.ConfigFileName)
 	return nil
 }

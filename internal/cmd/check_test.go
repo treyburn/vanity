@@ -79,7 +79,7 @@ modules:
 func writeAndLoadConfig(t *testing.T, yaml string) *config.Config {
 	t.Helper()
 	dir := t.TempDir()
-	path := filepath.Join(dir, ".vanity.yaml")
+	path := filepath.Join(dir, config.ConfigFileName)
 	require.NoError(t, os.WriteFile(path, []byte(yaml), 0o644))
 	cfg, err := config.Load(path)
 	require.NoError(t, err)
