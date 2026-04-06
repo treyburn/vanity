@@ -40,7 +40,7 @@ func TestLogVersion_Release(t *testing.T) {
 
 	out := buf.String()
 	assert.Contains(t, out, `"version":"v1.2.3"`)
-	assert.Contains(t, out, `"commit":"abc123def456"`)
+	assert.Contains(t, out, `"commit":"abc123d"`)
 	assert.NotContains(t, out, "dirty")
 }
 
@@ -59,7 +59,7 @@ func TestLogVersion_DirtyBuild(t *testing.T) {
 	})
 
 	out := buf.String()
-	assert.Contains(t, out, `"commit":"abc123def456 (dirty)"`)
+	assert.Contains(t, out, `"commit":"abc123d (dirty)"`)
 }
 
 func TestLogVersion_ShortCommit(t *testing.T) {

@@ -37,7 +37,8 @@ func logVersion(info *debug.BuildInfo) {
 	}
 
 	if commit != "" {
-		commit = commit[:min(12, len(commit))] + dirty
+		// truncate to the github style short commit which is just 7 chars
+		commit = commit[:min(7, len(commit))] + dirty
 	}
 
 	slog.Info("vanity", "version", version, "commit", commit, "go", info.GoVersion)
