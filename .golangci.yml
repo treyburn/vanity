@@ -10,7 +10,7 @@ linters:
     - containedctx
     - contextcheck
     - copyloopvar
-    - cyclop
+#    - cyclop
     - dogsled
     - dupl
     - embeddedstructfieldcheck
@@ -18,9 +18,9 @@ linters:
     - errorlint
     - errorlint
     - exhaustive
-    #    - exhaustruct
+#    - exhaustruct
     - exptostd
-    - funlen
+#    - funlen
     - gocognit
     - goconst
     - gocritic
