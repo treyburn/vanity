@@ -24,7 +24,7 @@ func (c *InitCmd) Run() error {
 	defer func() {
 		cErr := f.Close()
 		if cErr != nil {
-			slog.With(slog.Any("error", err)).Debug("Failed to close file")
+			slog.Debug("failed to close file", "error", cErr)
 		}
 	}()
 
@@ -32,6 +32,6 @@ func (c *InitCmd) Run() error {
 		return fmt.Errorf("writing %s: %w", configFileName, err)
 	}
 
-	slog.Info(fmt.Sprintf("Created %s", configFileName))
+	slog.Info("created config file", "path", configFileName)
 	return nil
 }
