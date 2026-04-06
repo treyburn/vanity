@@ -26,14 +26,14 @@ func main() {
 		kong.BindTo(ctx, (*context.Context)(nil)),
 	)
 
-	// Load config (commands that don't need it, like init, skip this)
+	// Load config
 	cfg, err := config.Load(".vanity.yaml")
+	// init and version cmd's don't require the config to exist - so it's ok to continue
 	if err != nil && kongCtx.Command() != "init" && kongCtx.Command() != "version" {
 		kongCtx.FatalIfErrorf(err)
 	}
 
 	// Apply CLI/env overrides and set up logging
-	var logger = slog.Default()
 	if cfg != nil {
 		if c.LogLevel != "" {
 			cfg.Log.Level = config.LogLevel(c.LogLevel)
@@ -42,17 +42,17 @@ func main() {
 			cfg.Log.Format = config.LogFormat(c.LogFormat)
 		}
 
-		logger, err = cfg.Log.NewLogger()
-		if err != nil {
+		logger, logErr := cfg.Log.NewLogger()
+		if logErr != nil {
 			kongCtx.FatalIfErrorf(err)
 		}
 		slog.SetDefault(logger)
 		slog.Debug("config loaded", "domain", cfg.Domain, "modules", len(cfg.Modules))
 	}
 
-	err = kongCtx.Run(cfg)
-	if err != nil {
-		logger.Error("failed to execute command", "error", err)
+	if err = kongCtx.Run(cfg); err != nil {
+		slog.Error("failed to execute command", "error", err)
+		kongCtx.FatalIfErrorf(err)
 	}
-	kongCtx.FatalIfErrorf(err)
+	os.Exit(0)
 }
