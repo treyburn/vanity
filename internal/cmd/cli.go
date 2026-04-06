@@ -10,6 +10,6 @@ type CLI struct {
 	Version  VersionCmd  `cmd:"" help:"Print version information."`
 
 	// Global flags (env vars override YAML, flags override env vars)
-	LogLevel  string `name:"log-level" env:"VANITY_LOG_LEVEL" help:"Override log level (debug, info, warn, error)."`
-	LogFormat string `name:"log-format" env:"VANITY_LOG_FORMAT" help:"Override log format (text, json)."`
+	LogLevel  string `env:"VANITY_LOG_LEVEL"  help:"Override log level (debug, info, warn, error)." name:"log-level"`
+	LogFormat string `env:"VANITY_LOG_FORMAT" help:"Override log format (text, json)."              name:"log-format"`
 }

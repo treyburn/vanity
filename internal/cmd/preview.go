@@ -11,8 +11,8 @@ import (
 )
 
 type PreviewCmd struct {
-	Port  int  `name:"port" default:"8080" help:"Port for the local HTTP server."`
-	Quiet bool `name:"quiet" default:"false" help:"Suppress the startup banner and curl examples."`
+	Port  int  `default:"8080"  help:"Port for the local HTTP server."                name:"port"`
+	Quiet bool `default:"false" help:"Suppress the startup banner and curl examples." name:"quiet"`
 }
 
 func (p *PreviewCmd) Run(ctx context.Context, cfg *config.Config) error {

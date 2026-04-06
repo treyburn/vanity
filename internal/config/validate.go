@@ -58,7 +58,7 @@ func ValidateBasic(cfg *Config) error {
 		if m.Repo == "" {
 			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo is required", i)})
 		} else if err := validateRepoURL(m.Repo); err != nil {
-			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo: %s", i, err)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo: %w", i, err)})
 		}
 
 		if m.Name != "" && seen[m.Name] {
@@ -99,7 +99,7 @@ func ValidateFull(ctx context.Context, cfg *Config) error {
 
 	for i, m := range cfg.Modules {
 		if err := vcs.ValidateRemote(ctx, m.Repo); err != nil {
-			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo: %s", i, err)})
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("modules[%d].repo: %w", i, err)})
 		}
 
 		if m.Subpackages != nil && m.Subpackages.LocalPath != "" {
