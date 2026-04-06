@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 // Server serves static vanity URL pages.
@@ -35,13 +36,13 @@ func (s *Server) logCurlHints(baseURL string, content fs.FS) {
 	const maxSubpackageHints = 3
 
 	// modules maps top-level name -> list of subpackage paths
-	modules := make(map[string][]string)
-	var order []string
+	mods := orderedmap.New[string, []string]()
 
 	if err := fs.WalkDir(content, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || path.Base(p) != "index.html" {
 			return nil
 		}
+
 		// p is like "vanity/index.html" or "vanity/internal/cmd/index.html"
 		dir := path.Dir(p)
 		if dir == "." {
@@ -49,26 +50,26 @@ func (s *Server) logCurlHints(baseURL string, content fs.FS) {
 		}
 		parts := strings.SplitN(dir, "/", 2)
 		root := parts[0]
-		if _, seen := modules[root]; !seen {
-			order = append(order, root)
-			modules[root] = nil
+		values, ok := mods.Get(root)
+		if !ok {
+			mods.Set(root, nil)
 		}
 		if len(parts) == 2 {
-			modules[root] = append(modules[root], parts[1])
+			mods.Set(root, append(values, parts[1]))
 		}
 		return nil
 	}); err != nil {
 		slog.Debug("failed to find subpackages", "error", err)
 	}
 
-	for _, name := range order {
-		slog.Info(fmt.Sprintf("try: curl -sL '%s/%s?go-get=1'", baseURL, name))
-		for i, sub := range modules[name] {
+	for pair := mods.Oldest(); pair != nil; pair = pair.Next() {
+		slog.Info(fmt.Sprintf("try: curl -sL '%s/%s?go-get=1'", baseURL, pair.Key))
+		for i, sub := range pair.Value {
 			if i >= maxSubpackageHints {
 				slog.Info("omitting further subpackages...")
 				break
 			}
-			slog.Info(fmt.Sprintf("try: curl -sL '%s/%s/%s?go-get=1'", baseURL, name, sub))
+			slog.Info(fmt.Sprintf("try: curl -sL '%s/%s/%s?go-get=1'", baseURL, pair.Key, sub))
 		}
 	}
 }
