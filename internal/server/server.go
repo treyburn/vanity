@@ -104,7 +104,7 @@ func (s *Server) Serve(ctx context.Context, content fs.FS) error {
 	go func() {
 		<-ctx.Done()
 		slog.Info("shutting down server")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			slog.Error("failed to shutdown server", "error", err)
