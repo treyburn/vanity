@@ -9,6 +9,7 @@ require (
 	github.com/go-git/go-git/v5 v5.17.2
 	github.com/goccy/go-yaml v1.19.2
 	github.com/lmittmann/tint v1.1.3
+	github.com/rogpeppe/go-internal v1.14.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -32,6 +33,7 @@ require (
 	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/tools v0.26.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

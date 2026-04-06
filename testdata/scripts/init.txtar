@@ -1,0 +1,7 @@
+# Test that init creates a .vanity.yaml file
+exec vanity init
+exists .vanity.yaml
+
+# Test that init refuses to overwrite
+! exec vanity init
+stderr 'already exists'

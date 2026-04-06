@@ -1,0 +1,13 @@
+# Test that generate produces expected output files
+exec vanity generate
+exists dist/foo/index.html
+exists dist/index.html
+exists dist/404.html
+exists dist/robots.txt
+exists dist/sitemap.xml
+
+-- .vanity.yaml --
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
