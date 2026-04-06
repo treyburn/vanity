@@ -70,7 +70,11 @@ func TestServe_NotFound(t *testing.T) {
 
 func TestServe_GracefulShutdown(t *testing.T) {
 	fs := fstest.MapFS{
-		"index.html": &fstest.MapFile{Data: []byte("<html></html>")},
+		"index.html":               &fstest.MapFile{Data: []byte("<html></html>")},
+		"pkg/sub/index.html":       &fstest.MapFile{Data: []byte("<html></html>")},
+		"pkg/another/index.html":   &fstest.MapFile{Data: []byte("<html></html>")},
+		"pkg/more/index.html":      &fstest.MapFile{Data: []byte("<html></html>")},
+		"pkg/excessive/index.html": &fstest.MapFile{Data: []byte("<html></html>")},
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
