@@ -1,0 +1,5 @@
+# Test that version prints version info
+exec vanity version
+stderr 'vanity'
+stderr 'version'
+stderr 'go'

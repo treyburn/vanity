@@ -1,0 +1,16 @@
+# Test that clean removes the output directory
+exec vanity generate
+exists dist/foo/index.html
+
+exec vanity clean
+! exists dist
+
+# Test that clean is a no-op if directory doesn't exist
+exec vanity clean
+stderr 'does not exist'
+
+-- .vanity.yaml --
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo

@@ -1,0 +1,31 @@
+# Full flow: init -> edit config -> check -> generate -> verify output
+
+# Init creates config
+exec vanity init
+exists .vanity.yaml
+
+# Overwrite with a real config
+cp valid.yaml .vanity.yaml
+
+# Check passes
+exec vanity check --skip-repo-validation
+
+# Generate produces files
+exec vanity generate
+exists dist/mylib/index.html
+exists dist/index.html
+exists dist/sitemap.xml
+
+# Module page contains correct go-import meta tag
+grep 'go-import' dist/mylib/index.html
+grep 'go.example.com/mylib git https://github.com/example/mylib' dist/mylib/index.html
+
+# Clean removes output
+exec vanity clean
+! exists dist
+
+-- valid.yaml --
+domain: go.example.com
+modules:
+  - name: mylib
+    repo: https://github.com/example/mylib

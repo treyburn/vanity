@@ -1,0 +1,9 @@
+# Test that check passes on valid config
+exec vanity check --skip-repo-validation
+stderr 'basic validation passed'
+
+-- .vanity.yaml --
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo

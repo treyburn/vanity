@@ -1,0 +1,9 @@
+# Test that check fails on invalid config with exit code 2
+! exec vanity check --skip-repo-validation
+stderr 'domain is required'
+
+-- .vanity.yaml --
+domain: ""
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
