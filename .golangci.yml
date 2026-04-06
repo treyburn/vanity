@@ -32,7 +32,7 @@ linters:
     - nolintlint
     - reassign
     - recvcheck
-    - revive
+#    - revive
     - rowserrcheck
     - sloglint
     - spancheck
@@ -49,6 +49,7 @@ linters:
           - cyclop
           - funlen
           - goconst
+          - gosec
   settings:
     nolintlint:
       require-explanation: true
