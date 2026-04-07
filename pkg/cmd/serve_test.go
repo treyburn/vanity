@@ -18,6 +18,8 @@ domain: go.example.com
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
 `)
 	cfg.Output.Dir = filepath.Join(t.TempDir(), "nonexistent")
 
@@ -69,6 +71,8 @@ domain: go.example.com
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
 `)
 	cfg.Output.Dir = outputDir
 

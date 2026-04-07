@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 func TestCheckCmd_BasicValid(t *testing.T) {

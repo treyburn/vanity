@@ -44,7 +44,7 @@ func (s *Server) logCurlHints(baseURL string, content fs.FS) {
 			return nil
 		}
 
-		// p is like "vanity/index.html" or "vanity/internal/cmd/index.html"
+		// p is like "vanity/index.html" or "vanity/pkg/cmd/index.html"
 		dir := path.Dir(p)
 		if dir == "." {
 			return nil // root index.html, not a module

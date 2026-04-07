@@ -74,28 +74,51 @@ func TestFindGoPackages_SkipsDotDirs(t *testing.T) {
 	assert.Equal(t, []string{"pkg/lib"}, pkgs)
 }
 
+func TestFindGoPackages_SkipsInternal(t *testing.T) {
+	bfs := memfs.New()
+	createFile(t, bfs, "main.go")
+	createFile(t, bfs, "internal/config/config.go")
+	createFile(t, bfs, "internal/cmd/cmd.go")
+	createFile(t, bfs, "pkg/lib/lib.go")
+
+	pkgs, err := findGoPackages(bfs, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"pkg/lib"}, pkgs)
+}
+
+func TestFindGoPackages_SkipsNestedInternal(t *testing.T) {
+	bfs := memfs.New()
+	createFile(t, bfs, "main.go")
+	createFile(t, bfs, "pkg/lib/lib.go")
+	createFile(t, bfs, "pkg/lib/internal/secret/secret.go")
+
+	pkgs, err := findGoPackages(bfs, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"pkg/lib"}, pkgs)
+}
+
 func TestFindGoPackages_ExcludePatterns(t *testing.T) {
 	bfs := memfs.New()
 	createFile(t, bfs, "main.go")
-	createFile(t, bfs, "internal/core/core.go")
+	createFile(t, bfs, "pkg/core/core.go")
 	createFile(t, bfs, "cmd/tool/main.go")
 	createFile(t, bfs, "pkg/lib/lib.go")
 
-	pkgs, err := findGoPackages(bfs, []string{"internal/*"})
+	pkgs, err := findGoPackages(bfs, []string{"pkg/*"})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"cmd/tool", "pkg/lib"}, pkgs)
+	assert.Equal(t, []string{"cmd/tool"}, pkgs)
 }
 
 func TestFindGoPackages_MultipleExcludePatterns(t *testing.T) {
 	bfs := memfs.New()
 	createFile(t, bfs, "main.go")
-	createFile(t, bfs, "internal/core/core.go")
+	createFile(t, bfs, "pkg/core/core.go")
 	createFile(t, bfs, "cmd/tool/main.go")
 	createFile(t, bfs, "pkg/lib/lib.go")
 
-	pkgs, err := findGoPackages(bfs, []string{"internal/*", "cmd/*"})
+	pkgs, err := findGoPackages(bfs, []string{"pkg/*", "cmd/*"})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"pkg/lib"}, pkgs)
+	assert.Empty(t, pkgs)
 }
 
 func TestFindGoPackages_NonGoFilesIgnored(t *testing.T) {
@@ -110,19 +133,20 @@ func TestFindGoPackages_NonGoFilesIgnored(t *testing.T) {
 }
 
 func TestMatchesAny(t *testing.T) {
-	assert.True(t, matchesAny("internal/core", []string{"internal/*"}))
-	assert.False(t, matchesAny("cmd/tool", []string{"internal/*"}))
-	assert.True(t, matchesAny("cmd/tool", []string{"cmd/*", "internal/*"}))
-	assert.False(t, matchesAny("pkg/lib", []string{"internal/*"}))
+	assert.True(t, matchesAny("pkg/core", []string{"pkg/*"}))
+	assert.False(t, matchesAny("cmd/tool", []string{"pkg/*"}))
+	assert.True(t, matchesAny("cmd/tool", []string{"cmd/*", "pkg/*"}))
+	assert.True(t, matchesAny("pkg/lib", []string{"pkg/*"}))
 }
 
 func TestShouldSkipDir(t *testing.T) {
 	assert.True(t, shouldSkipDir("vendor"))
 	assert.True(t, shouldSkipDir("testdata"))
+	assert.True(t, shouldSkipDir("internal"))
 	assert.True(t, shouldSkipDir(".git"))
 	assert.True(t, shouldSkipDir(".hidden"))
 	assert.False(t, shouldSkipDir("cmd"))
-	assert.False(t, shouldSkipDir("internal"))
+	assert.False(t, shouldSkipDir("pkg"))
 	assert.False(t, shouldSkipDir("pkg"))
 	assert.True(t, shouldSkipDir("."))
 	assert.True(t, shouldSkipDir(".."))

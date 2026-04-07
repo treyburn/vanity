@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -194,6 +194,21 @@ func TestGenerate_CleanRemovesExistingDir(t *testing.T) {
 	assert.NoFileExists(t, filepath.Join(outputDir, "stale", "old.html"))
 	// New files should exist
 	assert.FileExists(t, filepath.Join(outputDir, "foo", "index.html"))
+}
+
+func TestGenerate_NestedOutputDir(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "some", "dir", "dist")
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assert.FileExists(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"))
+	assert.FileExists(t, filepath.Join(cfg.Output.Dir, "index.html"))
+	assert.FileExists(t, filepath.Join(cfg.Output.Dir, "404.html"))
 }
 
 func TestGenerate_InMemory(t *testing.T) {

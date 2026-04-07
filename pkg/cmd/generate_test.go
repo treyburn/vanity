@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 func TestGenerateCmd_SingleModule(t *testing.T) {
@@ -19,6 +19,8 @@ domain: go.example.com
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
 `)
 	cfg.Output.Dir = outputDir
 
@@ -45,8 +47,12 @@ domain: go.example.com
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
   - name: bar
     repo: https://github.com/example/bar
+    subpackages:
+      mode: off
 `)
 	cfg.Output.Dir = outputDir
 
@@ -72,6 +78,8 @@ output:
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
 `)
 	cfg.Output.Dir = outputDir
 
@@ -95,6 +103,8 @@ output:
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
 `)
 	cfg.Output.Dir = outputDir
 
@@ -141,7 +151,7 @@ modules:
 func TestGenerateCmd_AutoSubpackages(t *testing.T) {
 	// Set up a fake local repo with Go files in subdirectories
 	localRepo := t.TempDir()
-	for _, dir := range []string{"cmd/tool", "pkg/lib", "internal/secret"} {
+	for _, dir := range []string{"cmd/tool", "lib/core", "lib/util", "internal/secret"} {
 		dirPath := filepath.Join(localRepo, dir)
 		require.NoError(t, os.MkdirAll(dirPath, 0o755))
 		require.NoError(t, os.WriteFile(filepath.Join(dirPath, "main.go"), []byte("package "+filepath.Base(dir)+"\n"), 0o644))
@@ -159,7 +169,7 @@ modules:
     subpackages:
       mode: auto
       exclude:
-        - "internal/*"
+        - "lib/util"
 `)
 	cfg.Output.Dir = outputDir
 
@@ -171,8 +181,46 @@ modules:
 	assert.FileExists(t, filepath.Join(outputDir, "foo", "index.html"))
 	// Discovered subpackage pages
 	assert.FileExists(t, filepath.Join(outputDir, "foo", "cmd", "tool", "index.html"))
-	assert.FileExists(t, filepath.Join(outputDir, "foo", "pkg", "lib", "index.html"))
+	assert.FileExists(t, filepath.Join(outputDir, "foo", "lib", "core", "index.html"))
 	// Excluded subpackage should not exist
+	assert.NoFileExists(t, filepath.Join(outputDir, "foo", "lib", "util", "index.html"))
+	// Internal packages should be filtered out automatically
+	assert.NoFileExists(t, filepath.Join(outputDir, "foo", "internal", "secret", "index.html"))
+}
+
+func TestGenerateCmd_ExplicitSubpackages_OnlyIncludesSpecified(t *testing.T) {
+	// Set up a local repo with multiple Go packages
+	localRepo := t.TempDir()
+	for _, dir := range []string{"cmd/tool", "pkg/lib", "pkg/other", "internal/secret"} {
+		dirPath := filepath.Join(localRepo, dir)
+		require.NoError(t, os.MkdirAll(dirPath, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(dirPath, "main.go"), []byte("package "+filepath.Base(dir)+"\n"), 0o644))
+	}
+
+	outputDir := filepath.Join(t.TempDir(), "dist")
+	cfg := writeAndLoadConfig(t, `
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
+    local_path: `+localRepo+`
+    subpackages:
+      mode: explicit
+      paths:
+        - cmd/tool
+`)
+	cfg.Output.Dir = outputDir
+
+	cmd := &GenerateCmd{}
+	err := cmd.Run(context.Background(), cfg)
+	require.NoError(t, err)
+
+	// Only the explicit path should be generated
+	assert.FileExists(t, filepath.Join(outputDir, "foo", "index.html"))
+	assert.FileExists(t, filepath.Join(outputDir, "foo", "cmd", "tool", "index.html"))
+	// Other packages on disk should NOT be generated
+	assert.NoFileExists(t, filepath.Join(outputDir, "foo", "pkg", "lib", "index.html"))
+	assert.NoFileExists(t, filepath.Join(outputDir, "foo", "pkg", "other", "index.html"))
 	assert.NoFileExists(t, filepath.Join(outputDir, "foo", "internal", "secret", "index.html"))
 }
 

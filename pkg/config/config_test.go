@@ -38,7 +38,7 @@ modules:
     subpackages:
       mode: auto
       exclude:
-        - "internal/*"
+        - "pkg/*"
         - "testdata/*"
   - name: other-pkg
     repo: https://github.com/treyburn/other-pkg
@@ -71,7 +71,7 @@ modules:
 	assert.Equal(t, "https://vanity.treyburn.dev/docs", m0.Redirect)
 	require.NotNil(t, m0.Subpackages)
 	assert.Equal(t, SubpackageModeAuto, m0.Subpackages.Mode)
-	assert.Equal(t, []string{"internal/*", "testdata/*"}, m0.Subpackages.Exclude)
+	assert.Equal(t, []string{"pkg/*", "testdata/*"}, m0.Subpackages.Exclude)
 
 	// Second module: inherits defaults via Resolve()
 	m1 := cfg.Modules[1]
@@ -278,6 +278,25 @@ func TestResolve_SubpackageModeDefaultsToAuto(t *testing.T) {
 
 	cfg.Resolve()
 	assert.Equal(t, SubpackageModeAuto, cfg.Modules[0].Subpackages.Mode)
+}
+
+func TestResolve_NilSubpackagesDefaultsToAuto(t *testing.T) {
+	cfg := &Config{
+		Domain:   "go.example.com",
+		Defaults: DefaultsConfig{Branch: "main", GoSource: true, RedirectRoot: "https://pkg.go.dev"},
+		Modules: []Module{
+			{
+				Name: "foo",
+				Repo: "https://github.com/example/foo",
+				// Subpackages is nil — should default to auto with default excludes
+			},
+		},
+	}
+
+	cfg.Resolve()
+	require.NotNil(t, cfg.Modules[0].Subpackages)
+	assert.Equal(t, SubpackageModeAuto, cfg.Modules[0].Subpackages.Mode)
+	assert.Equal(t, []string{"pkg", "testdata"}, cfg.Modules[0].Subpackages.Exclude)
 }
 
 func TestImportPath(t *testing.T) {

@@ -17,6 +17,8 @@ domain: go.example.com
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
 `)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -63,6 +65,8 @@ domain: go.example.com
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    subpackages:
+      mode: off
 `)
 	// Break the config to trigger ValidateBasic failure
 	cfg.Domain = ""

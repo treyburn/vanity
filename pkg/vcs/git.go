@@ -125,7 +125,7 @@ func walkDir(bfs billy.Filesystem, dir string, seen map[string]bool) error {
 func shouldSkipDir(path string) bool {
 	name := filepath.Base(path)
 	switch name {
-	case ".", "..", "vendor", "testdata", ".git":
+	case ".", "..", "vendor", "testdata", "internal", ".git":
 		return true
 	}
 	return strings.HasPrefix(name, ".")

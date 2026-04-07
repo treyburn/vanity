@@ -13,7 +13,7 @@ import (
 	html "html/template"
 	text "text/template"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 // template is satisfied by both html/template.Template and text/template.Template.
