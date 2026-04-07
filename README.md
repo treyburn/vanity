@@ -45,7 +45,37 @@ Vanity is driven by a single YAML file and a handful of CLI commands. See [CLI C
 For most users, it's as simple to get going as running `vanity init`, filling in a few required fields, then running `vanity generate`. With that you're ready to ship your static pages.
 
 ### CLI Commands
+Most users can use the following commands as a basic quickstart to get their pages generated.
+```shell
+# install Vanity
+go install go.treyburn.dev/vanity@latest
+
+# move to the dir you want to store these pages in
+cd ~/repo/deployment
+
+# generate your config file
+vanity init
+
+# add your domain and module redirect info and save
+vi .vanity.yml
+
+# check that everything is configured correct
+vanity check
+
+# generate your pages
+vanity generate
+
+# run a localhost server with some sample curl calls to validate
+vanity serve
+
+# and now you're ready to publish
+scp -r ./dist user@your.domain.com
+```
+
+If you want to see the full set of commands and flags available you can simply run `vanity --help`.
 ```yaml
+# vanity --help
+
 Usage: vanity <command> [flags]
  A static site generator CLI for Go vanity URLs.
 
