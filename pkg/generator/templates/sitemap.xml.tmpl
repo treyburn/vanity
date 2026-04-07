@@ -2,5 +2,8 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {{- range .Modules}}
   <url><loc>https://{{$.Domain}}/{{.Name}}</loc></url>
+{{- range .Subpackages}}
+  <url><loc>https://{{$.Domain}}/{{.Name}}</loc></url>
+{{- end}}
 {{- end}}
 </urlset>
