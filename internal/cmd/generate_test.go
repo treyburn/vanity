@@ -155,9 +155,9 @@ domain: go.example.com
 modules:
   - name: foo
     repo: https://github.com/example/foo
+    local_path: `+localRepo+`
     subpackages:
       mode: auto
-      local_path: `+localRepo+`
       exclude:
         - "internal/*"
 `)

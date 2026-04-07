@@ -47,6 +47,7 @@ For most users, it is as simple to get up and running as running `vanity init`, 
 ### CLI Commands
 ```yaml
 Usage: vanity <command> [flags]
+ A static site generator for Go vanity URLs.
 
 Flags:
   -h, --help                 Show context-sensitive help.
@@ -55,10 +56,10 @@ Flags:
 
 Commands:
   init [flags]
-    Generate a .vanity.yaml with default values.
+    Generate a minimal .vanity.yml config file (use --verbose for full spec).
 
   check [flags]
-    Validate the .vanity.yaml configuration.
+    Validate the .vanity.yml configuration.
 
   generate [flags]
     Generate static HTML files from configuration.
@@ -97,8 +98,9 @@ The following fields are required to be populated.
 
 ```yaml
 # .vanity.yml
-# Your vanity URL domain (may include subdomains)
-domain: example.com
+
+# Your vanity URL domain (may include subdomains and url paths)
+domain: example.com # REQUIRED
 # Module definitions (at least one required)
 modules:
   - name: my-module # REQUIRED: import path becomes {domain}/{module.name}
@@ -122,6 +124,7 @@ I've set this up to push to Cloudflare Pages for my `go.treyburn.dev` domain as 
 ## Configuration Reference
 ```yaml
 # .vanity.yml
+
 # CLI behavior (overridable via --flags and VANITY_* env vars)
 log:
   level: info # Options: debug | info | warn | error
@@ -129,21 +132,33 @@ log:
   color: true # Colorize text output (no effect on json)
 # Output settings
 output:
-  dir: dist # Relative to .vanity.yaml location
+  dir: dist # Relative to .vanity.yml location
   clean: true # Remove output dir before generating
   index: true # Generate root index.html listing all modules
   not_found: true # Generate 404.html redirecting to index
   robots: true # Generate robots.txt (permissive, links to sitemap)
   sitemap: true # Generate sitemap.xml listing all module URLs
-# Your vanity URL domain
+# Your vanity URL domain (may include subdomains and url paths)
 domain: example.com # REQUIRED
 # Default values applied to all modules (overridable per-module)
 defaults:
-  branch: main # Used in go-source meta tag URL templates
+  branch: main # Used in go-source meta tag URL templates (defaults to 'main')
   go_source: true # Include go-source meta tag for pkg.go.dev source links
   redirect_root: https://pkg.go.dev # Redirect = redirect_root/domain/name
 # Module definitions (at least one required)
 modules:
-- name: my-module # REQUIRED: import path becomes {domain}/{name}
-  repo: https://github.com/example/my-module # REQUIRED: full git repository URL
+  - name: my-module # REQUIRED: import path becomes {domain}/{module.name}
+    repo: https://github.com/example/my-module # REQUIRED: full git repository URL
+    branch: main # Override defaults.branch for this module
+    go_source: true # Override defaults.go_source for this module
+    redirect: https://pkg.go.dev/example.com/my-module # Override browser redirect URL for this module
+    local_path: ./my-module # Local checkout path (default: in-memory clone from repo remote if not specified)
+    # Subpackage discovery settings
+    subpackages:
+      mode: auto # Options: off | auto | explicit (defaults to 'auto')
+      exclude: # Directories to skip in auto mode (defaults to [internal, testdata] in 'auto' mode)
+        - internal
+        - testdata
+      paths: # Allow-list exact subpackage paths (explicit mode only)
+        - sub/pkg
 ```

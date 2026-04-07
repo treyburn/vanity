@@ -10,6 +10,8 @@ import (
 	"github.com/lmittmann/tint"
 )
 
+const ConfigFileName = ".vanity.yml"
+
 // LogLevel is an enum for log verbosity.
 type LogLevel string
 
@@ -32,18 +34,16 @@ const (
 type SubpackageMode string
 
 const (
-	SubpackageModeOff  SubpackageMode = "off"
-	SubpackageModeAuto SubpackageMode = "auto"
-	// TODO: this may make more sense as an explicit blocklist (may also make sense to have an explicit allow list?)
-	//  maybe just have auto mode + a fliter?
+	SubpackageModeOff      SubpackageMode = "off"
+	SubpackageModeAuto     SubpackageMode = "auto"
 	SubpackageModeExplicit SubpackageMode = "explicit"
 )
 
 type Config struct {
-	Log      LogConfig      `yaml:"log"`
-	Output   OutputConfig   `yaml:"output"`
+	Log      LogConfig      `yaml:"log,omitempty"`
+	Output   OutputConfig   `yaml:"output,omitempty"`
 	Domain   string         `yaml:"domain"`
-	Defaults DefaultsConfig `yaml:"defaults"`
+	Defaults DefaultsConfig `yaml:"defaults,omitempty"`
 	Modules  []Module       `yaml:"modules"`
 }
 
@@ -106,6 +106,7 @@ type Module struct {
 	Branch      string            `yaml:"branch,omitempty"`
 	GoSource    *bool             `yaml:"go_source,omitempty"`
 	Redirect    string            `yaml:"redirect,omitempty"`
+	LocalPath   string            `yaml:"local_path,omitempty"`
 	Subpackages *SubpackageConfig `yaml:"subpackages,omitempty"`
 }
 
@@ -115,10 +116,9 @@ func (m Module) ImportPath(domain string) string {
 }
 
 type SubpackageConfig struct {
-	Mode      SubpackageMode `yaml:"mode"`
-	LocalPath string         `yaml:"local_path,omitempty"`
-	Exclude   []string       `yaml:"exclude,omitempty"`
-	Paths     []string       `yaml:"paths,omitempty"`
+	Mode    SubpackageMode `yaml:"mode"`
+	Exclude []string       `yaml:"exclude,omitempty"`
+	Paths   []string       `yaml:"paths,omitempty"`
 }
 
 // DefaultConfig returns a Config with all default values populated.
@@ -147,21 +147,43 @@ func DefaultConfig() *Config {
 	}
 }
 
-// ExampleConfig returns a Config with placeholder values for `vanity init`.
+// MinimalConfig returns a Config with only required fields for `vanity init`.
+func MinimalConfig() *Config {
+	return &Config{
+		Domain: "example.com",
+		Modules: []Module{
+			{
+				Name: "my-module",
+				Repo: "https://github.com/example/my-module",
+			},
+		},
+	}
+}
+
+// ExampleConfig returns a Config with placeholder values for `vanity init --verbose`.
 // This is the starting point users edit — includes a sample domain and module.
 func ExampleConfig() *Config {
 	cfg := DefaultConfig()
 	cfg.Domain = "example.com"
 	cfg.Modules = []Module{
 		{
-			Name: "my-module",
-			Repo: "https://github.com/example/my-module",
+			Name:      "my-module",
+			Repo:      "https://github.com/example/my-module",
+			Branch:    "main",
+			GoSource:  new(true),
+			Redirect:  "https://pkg.go.dev/example.com/my-module",
+			LocalPath: "./my-module",
+			Subpackages: &SubpackageConfig{
+				Mode:    SubpackageModeAuto,
+				Exclude: []string{"internal", "testdata"},
+				Paths:   []string{"sub/pkg"},
+			},
 		},
 	}
 	return cfg
 }
 
-// Load reads .vanity.yaml from the given path, applying defaults for
+// Load reads .vanity.yml from the given path, applying defaults for
 // any unspecified fields, then resolves per-module inheritance.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(filepath.Clean(path))
@@ -199,8 +221,13 @@ func (c *Config) Resolve() {
 		if m.Redirect == "" {
 			m.Redirect = c.Defaults.RedirectRoot + "/" + c.Domain + "/" + m.Name
 		}
-		if m.Subpackages != nil && m.Subpackages.Mode == "" {
-			m.Subpackages.Mode = SubpackageModeOff
+		if m.Subpackages != nil {
+			if m.Subpackages.Mode == "" {
+				m.Subpackages.Mode = SubpackageModeAuto
+			}
+			if m.Subpackages.Mode == SubpackageModeAuto && len(m.Subpackages.Exclude) == 0 {
+				m.Subpackages.Exclude = []string{"internal", "testdata"}
+			}
 		}
 	}
 }

@@ -9,7 +9,7 @@ exec vanity clean
 exec vanity clean
 stderr 'does not exist'
 
--- .vanity.yaml --
+-- .vanity.yml --
 domain: go.example.com
 modules:
   - name: foo

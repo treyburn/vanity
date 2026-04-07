@@ -9,6 +9,55 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestWriteMinimal(t *testing.T) {
+	var buf bytes.Buffer
+	err := WriteMinimal(&buf)
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.NotEmpty(t, output)
+
+	assert.Contains(t, output, "REQUIRED")
+	assert.Contains(t, output, "domain:")
+	assert.Contains(t, output, "modules:")
+	// Minimal should NOT include optional sections
+	assert.NotContains(t, output, "log:")
+	assert.NotContains(t, output, "output:")
+	assert.NotContains(t, output, "defaults:")
+}
+
+func TestWriteMinimal_RoundTrips(t *testing.T) {
+	var buf bytes.Buffer
+	err := WriteMinimal(&buf)
+	require.NoError(t, err)
+
+	var cfg Config
+	err = yaml.Unmarshal(buf.Bytes(), &cfg)
+	require.NoError(t, err)
+
+	minimal := MinimalConfig()
+	assert.Equal(t, minimal.Domain, cfg.Domain)
+	require.Len(t, cfg.Modules, 1)
+	assert.Equal(t, minimal.Modules[0].Name, cfg.Modules[0].Name)
+	assert.Equal(t, minimal.Modules[0].Repo, cfg.Modules[0].Repo)
+}
+
+func TestCommentedMinimal_AllFieldsCovered(t *testing.T) {
+	cm := CommentedMinimal()
+
+	expectedKeys := []string{
+		"$.domain",
+		"$.modules",
+		"$.modules[0].name",
+		"$.modules[0].repo",
+	}
+
+	for _, key := range expectedKeys {
+		_, ok := cm[key]
+		assert.True(t, ok, "missing comment for %s", key)
+	}
+}
+
 func TestWriteDefault(t *testing.T) {
 	var buf bytes.Buffer
 	err := WriteDefault(&buf)
@@ -52,6 +101,14 @@ func TestWriteDefault_RoundTrips(t *testing.T) {
 	require.Len(t, cfg.Modules, 1)
 	assert.Equal(t, example.Modules[0].Name, cfg.Modules[0].Name)
 	assert.Equal(t, example.Modules[0].Repo, cfg.Modules[0].Repo)
+	assert.Equal(t, example.Modules[0].Branch, cfg.Modules[0].Branch)
+	assert.Equal(t, example.Modules[0].GoSource, cfg.Modules[0].GoSource)
+	assert.Equal(t, example.Modules[0].Redirect, cfg.Modules[0].Redirect)
+	assert.Equal(t, example.Modules[0].LocalPath, cfg.Modules[0].LocalPath)
+	require.NotNil(t, cfg.Modules[0].Subpackages)
+	assert.Equal(t, example.Modules[0].Subpackages.Mode, cfg.Modules[0].Subpackages.Mode)
+	assert.Equal(t, example.Modules[0].Subpackages.Exclude, cfg.Modules[0].Subpackages.Exclude)
+	assert.Equal(t, example.Modules[0].Subpackages.Paths, cfg.Modules[0].Subpackages.Paths)
 }
 
 func TestCommentedDefault_AllFieldsCovered(t *testing.T) {
@@ -77,6 +134,14 @@ func TestCommentedDefault_AllFieldsCovered(t *testing.T) {
 		"$.modules",
 		"$.modules[0].name",
 		"$.modules[0].repo",
+		"$.modules[0].branch",
+		"$.modules[0].go_source",
+		"$.modules[0].redirect",
+		"$.modules[0].local_path",
+		"$.modules[0].subpackages",
+		"$.modules[0].subpackages.mode",
+		"$.modules[0].subpackages.exclude",
+		"$.modules[0].subpackages.paths",
 	}
 
 	for _, key := range expectedKeys {

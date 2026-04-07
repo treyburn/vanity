@@ -6,7 +6,7 @@ exists dist/404.html
 exists dist/robots.txt
 exists dist/sitemap.xml
 
--- .vanity.yaml --
+-- .vanity.yml --
 domain: go.example.com
 modules:
   - name: foo
