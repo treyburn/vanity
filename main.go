@@ -9,8 +9,8 @@ import (
 
 	"github.com/alecthomas/kong"
 
-	"go.treyburn.dev/vanity/internal/cmd"
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/cmd"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 func main() {
