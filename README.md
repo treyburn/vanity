@@ -112,7 +112,7 @@ modules:
 ## Examples
 As you might have guessed, Vanity uses Vanity to provide it's vanity URL redirection.
 
-I've set this up to push to Cloudflare Pages for my `go.treyburn.dev` domain as an [action on release](./.github/workflows/release.yml) in this repository. It kicks offs an action to update and publish in another repo. You can check out the [repository for that here](https://github.com/treyburn), and I have a small [write-up on my blog](https://treyburn.dev) explaining how it works.
+I've set this up to push to Cloudflare Pages for my `go.treyburn.dev` domain as an [action on release](./.github/workflows/release.yml) in this repository. It kicks offs an action to update and publish in another repo. You can check out the [repository for that here](https://github.com/treyburn/pkgs), and I have a small [write-up on my blog](https://treyburn.dev) explaining how it works.
 
 ---
 
