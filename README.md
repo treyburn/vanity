@@ -2,14 +2,18 @@
     <img src="vanity-logo.png" alt="Vanity Logo">
     <h1>Vanity</h1>
     <p>An opinionated, minimalist, static site generator CLI for redirecting vanity Go module URLs. Take control of your Go modules by owning your namespace.</p>
+    <a href="https://pkg.go.dev/go.treyburn.dev/vanity"><img src="https://pkg.go.dev/badge/go.treyburn.dev/vanity.svg" alt="Go Reference"></a>
+    <a href="https://github.com/treyburn/vanity/releases/latest"><img src="https://img.shields.io/github/v/release/treyburn/vanity" alt="Version"></a>
+    <a href="https://github.com/treyburn/vanity/blob/main/LICENSE"><img src="https://img.shields.io/github/license/treyburn/vanity" alt="License"></a>
     <a href="https://github.com/treyburn/vanity/actions"><img src="https://github.com/treyburn/vanity/actions/workflows/ci.yml/badge.svg" alt="GHA Build"></a>
+    <a href="https://goreportcard.com/report/go.treyburn.dev/vanity"><img src="https://goreportcard.com/badge/go.treyburn.dev/vanity" alt="Go Report Card"></a>
     <a href="https://codecov.io/gh/treyburn/vanity"><img src="https://codecov.io/gh/treyburn/vanity/graph/badge.svg?token=15ANARDU98" alt="codecov"></a>
 </div>
 
 ---
 
 ## Why?
-Go is unique. Unlike other languages with centralized package registries (npm, PyPI, Crates.io, etc.), Go embraced a fully distributed module system. Your domain is your namespace. Yet GitHub has become the de facto registry, bringing vendor lock-in with it. Vanity fixes that.
+Go is unique. Unlike other languages with centralized package registries (npm, PyPI, Crates.io, etc.), Go embraced a fully distributed module system. Your domain is your namespace. Yet GitHub has become the de facto registry, bringing vendor lock-in with it. Vanity fixes that by giving you control on how users `go get` and `go install` your code.
 
 ### Ownership
 GitHub doesn't own your code; you do.
