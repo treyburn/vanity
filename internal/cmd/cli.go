@@ -1,7 +1,7 @@
 package cmd
 
 type CLI struct {
-	Init     InitCmd     `cmd:"" help:"Generate a .vanity.yml with default values."`
+	Init     InitCmd     `cmd:"" help:"Generate a minimal .vanity.yml config file (use --verbose for full spec)."`
 	Check    CheckCmd    `cmd:"" help:"Validate the .vanity.yml configuration."`
 	Generate GenerateCmd `cmd:"" help:"Generate static HTML files from configuration."`
 	Preview  PreviewCmd  `cmd:"" help:"Generate in-memory and serve via local HTTP."`

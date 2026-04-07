@@ -47,6 +47,7 @@ For most users, it is as simple to get up and running as running `vanity init`, 
 ### CLI Commands
 ```yaml
 Usage: vanity <command> [flags]
+ A static site generator for Go vanity URLs.
 
 Flags:
   -h, --help                 Show context-sensitive help.
@@ -55,7 +56,7 @@ Flags:
 
 Commands:
   init [flags]
-    Generate a .vanity.yml with default values.
+    Generate a minimal .vanity.yml config file (use --verbose for full spec).
 
   check [flags]
     Validate the .vanity.yml configuration.
@@ -141,17 +142,17 @@ output:
 domain: example.com # REQUIRED
 # Default values applied to all modules (overridable per-module)
 defaults:
-  branch: main # Used in go-source meta tag URL templates
+  branch: main # Used in go-source meta tag URL templates (defaults to 'main')
   go_source: true # Include go-source meta tag for pkg.go.dev source links
   redirect_root: https://pkg.go.dev # Redirect = redirect_root/domain/name
 # Module definitions (at least one required)
 modules:
-  - name: my-module # REQUIRED: import path becomes {domain}/{name}
+  - name: my-module # REQUIRED: import path becomes {domain}/{module.name}
     repo: https://github.com/example/my-module # REQUIRED: full git repository URL
     branch: main # Override defaults.branch for this module
     go_source: true # Override defaults.go_source for this module
     redirect: https://pkg.go.dev/example.com/my-module # Override browser redirect URL for this module
-    local_path: "" # Local checkout path (default: in-memory clone from repo remote if not specified)
+    local_path: ./my-module # Local checkout path (default: in-memory clone from repo remote if not specified)
     # Subpackage discovery settings
     subpackages:
       mode: auto # Options: off | auto | explicit (defaults to 'auto')
