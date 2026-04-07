@@ -7,7 +7,31 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-// CommentedDefault returns the comment map for init output.
+// CommentedMinimal returns the comment map for minimal init output.
+func CommentedMinimal() yaml.CommentMap {
+	return yaml.CommentMap{
+		"$.domain":          {yaml.HeadComment(" Your vanity URL domain (may include subdomains and url paths)"), yaml.LineComment(" REQUIRED")},
+		"$.modules":         {yaml.HeadComment(" Module definitions (at least one required)")},
+		"$.modules[0].name": {yaml.LineComment(" REQUIRED: import path becomes {domain}/{name}")},
+		"$.modules[0].repo": {yaml.LineComment(" REQUIRED: full git repository URL")},
+	}
+}
+
+// WriteMinimal writes a minimal .vanity.yml with only required fields to w.
+func WriteMinimal(w io.Writer) error {
+	cfg := MinimalConfig()
+	cm := CommentedMinimal()
+
+	bytes, err := yaml.MarshalWithOptions(cfg, yaml.WithComment(cm))
+	if err != nil {
+		return fmt.Errorf("marshaling minimal config: %w", err)
+	}
+
+	_, err = w.Write(bytes)
+	return err
+}
+
+// CommentedDefault returns the comment map for verbose init output.
 func CommentedDefault() yaml.CommentMap {
 	return yaml.CommentMap{
 		"$.log":                            {yaml.HeadComment(" CLI behavior (overridable via --flags and VANITY_* env vars)")},
@@ -23,11 +47,11 @@ func CommentedDefault() yaml.CommentMap {
 		"$.output.sitemap":                 {yaml.LineComment(" Generate sitemap.xml listing all module URLs")},
 		"$.domain":                         {yaml.HeadComment(" Your vanity URL domain (may include subdomains and url paths)"), yaml.LineComment(" REQUIRED")},
 		"$.defaults":                       {yaml.HeadComment(" Default values applied to all modules (overridable per-module)")},
-		"$.defaults.branch":                {yaml.LineComment(" Used in go-source meta tag URL templates")},
+		"$.defaults.branch":                {yaml.LineComment(" Used in go-source meta tag URL templates (defaults to 'main')")},
 		"$.defaults.go_source":             {yaml.LineComment(" Include go-source meta tag for pkg.go.dev source links")},
 		"$.defaults.redirect_root":         {yaml.LineComment(" Redirect = redirect_root/domain/name")},
 		"$.modules":                        {yaml.HeadComment(" Module definitions (at least one required)")},
-		"$.modules[0].name":                {yaml.LineComment(" REQUIRED: import path becomes {domain}/{name}")},
+		"$.modules[0].name":                {yaml.LineComment(" REQUIRED: import path becomes {domain}/{module.name}")},
 		"$.modules[0].repo":                {yaml.LineComment(" REQUIRED: full git repository URL")},
 		"$.modules[0].branch":              {yaml.LineComment(" Override defaults.branch for this module")},
 		"$.modules[0].go_source":           {yaml.LineComment(" Override defaults.go_source for this module")},

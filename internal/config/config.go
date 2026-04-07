@@ -40,10 +40,10 @@ const (
 )
 
 type Config struct {
-	Log      LogConfig      `yaml:"log"`
-	Output   OutputConfig   `yaml:"output"`
+	Log      LogConfig      `yaml:"log,omitempty"`
+	Output   OutputConfig   `yaml:"output,omitempty"`
 	Domain   string         `yaml:"domain"`
-	Defaults DefaultsConfig `yaml:"defaults"`
+	Defaults DefaultsConfig `yaml:"defaults,omitempty"`
 	Modules  []Module       `yaml:"modules"`
 }
 
@@ -106,7 +106,7 @@ type Module struct {
 	Branch      string            `yaml:"branch,omitempty"`
 	GoSource    *bool             `yaml:"go_source,omitempty"`
 	Redirect    string            `yaml:"redirect,omitempty"`
-	LocalPath   string            `yaml:"local_path"`
+	LocalPath   string            `yaml:"local_path,omitempty"`
 	Subpackages *SubpackageConfig `yaml:"subpackages,omitempty"`
 }
 
@@ -147,7 +147,20 @@ func DefaultConfig() *Config {
 	}
 }
 
-// ExampleConfig returns a Config with placeholder values for `vanity init`.
+// MinimalConfig returns a Config with only required fields for `vanity init`.
+func MinimalConfig() *Config {
+	return &Config{
+		Domain: "example.com",
+		Modules: []Module{
+			{
+				Name: "my-module",
+				Repo: "https://github.com/example/my-module",
+			},
+		},
+	}
+}
+
+// ExampleConfig returns a Config with placeholder values for `vanity init --verbose`.
 // This is the starting point users edit — includes a sample domain and module.
 func ExampleConfig() *Config {
 	cfg := DefaultConfig()
@@ -159,7 +172,7 @@ func ExampleConfig() *Config {
 			Branch:    "main",
 			GoSource:  new(true),
 			Redirect:  "https://pkg.go.dev/example.com/my-module",
-			LocalPath: "",
+			LocalPath: "./my-module",
 			Subpackages: &SubpackageConfig{
 				Mode:    SubpackageModeAuto,
 				Exclude: []string{"internal", "testdata"},

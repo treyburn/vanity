@@ -9,6 +9,55 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestWriteMinimal(t *testing.T) {
+	var buf bytes.Buffer
+	err := WriteMinimal(&buf)
+	require.NoError(t, err)
+
+	output := buf.String()
+	assert.NotEmpty(t, output)
+
+	assert.Contains(t, output, "REQUIRED")
+	assert.Contains(t, output, "domain:")
+	assert.Contains(t, output, "modules:")
+	// Minimal should NOT include optional sections
+	assert.NotContains(t, output, "log:")
+	assert.NotContains(t, output, "output:")
+	assert.NotContains(t, output, "defaults:")
+}
+
+func TestWriteMinimal_RoundTrips(t *testing.T) {
+	var buf bytes.Buffer
+	err := WriteMinimal(&buf)
+	require.NoError(t, err)
+
+	var cfg Config
+	err = yaml.Unmarshal(buf.Bytes(), &cfg)
+	require.NoError(t, err)
+
+	minimal := MinimalConfig()
+	assert.Equal(t, minimal.Domain, cfg.Domain)
+	require.Len(t, cfg.Modules, 1)
+	assert.Equal(t, minimal.Modules[0].Name, cfg.Modules[0].Name)
+	assert.Equal(t, minimal.Modules[0].Repo, cfg.Modules[0].Repo)
+}
+
+func TestCommentedMinimal_AllFieldsCovered(t *testing.T) {
+	cm := CommentedMinimal()
+
+	expectedKeys := []string{
+		"$.domain",
+		"$.modules",
+		"$.modules[0].name",
+		"$.modules[0].repo",
+	}
+
+	for _, key := range expectedKeys {
+		_, ok := cm[key]
+		assert.True(t, ok, "missing comment for %s", key)
+	}
+}
+
 func TestWriteDefault(t *testing.T) {
 	var buf bytes.Buffer
 	err := WriteDefault(&buf)
