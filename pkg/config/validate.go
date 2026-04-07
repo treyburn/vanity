@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"os"
 
-	"go.treyburn.dev/vanity/internal/vcs"
+	"go.treyburn.dev/vanity/pkg/vcs"
 )
 
 // ValidationError wraps a validation error and provides an exit code of 2

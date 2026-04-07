@@ -13,7 +13,7 @@ import (
 	html "html/template"
 	text "text/template"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 // template is satisfied by both html/template.Template and text/template.Template.
@@ -26,13 +26,14 @@ var templateFS embed.FS
 
 // ModuleData holds the template context for a single module page.
 type ModuleData struct {
-	Domain     string
-	Name       string
-	ImportPath string
-	Repo       string
-	Branch     string
-	GoSource   bool
-	Redirect   string
+	Domain      string
+	Name        string
+	ImportPath  string
+	Repo        string
+	Branch      string
+	GoSource    bool
+	Redirect    string
+	Subpackages []ModuleData
 }
 
 // SiteData holds the template context for index, sitemap, robots, etc.
@@ -146,15 +147,13 @@ func buildModuleData(cfg *config.Config, subpackages map[string][]string) []Modu
 			GoSource:   *m.GoSource,
 			Redirect:   m.Redirect,
 		}
-		modules = append(modules, md)
 
-		// Add subpackage pages — each gets the same go-import root-path
+		// Add subpackage data — each gets the same go-import root-path
 		// pointing to the parent module, which is what the Go tool expects.
 		for _, subpkg := range subpackages[m.Name] {
-			subName := m.Name + "/" + subpkg
-			modules = append(modules, ModuleData{
+			md.Subpackages = append(md.Subpackages, ModuleData{
 				Domain:     cfg.Domain,
-				Name:       subName,
+				Name:       m.Name + "/" + subpkg,
 				ImportPath: m.ImportPath(cfg.Domain),
 				Repo:       m.Repo,
 				Branch:     m.Branch,
@@ -162,6 +161,8 @@ func buildModuleData(cfg *config.Config, subpackages map[string][]string) []Modu
 				Redirect:   m.Redirect + "/" + subpkg,
 			})
 		}
+
+		modules = append(modules, md)
 	}
 
 	return modules
@@ -199,13 +200,21 @@ func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string
 		return tmpl.Execute(w, data)
 	}
 
-	// Generate module pages
+	// Generate module and subpackage pages
 	for _, md := range modules {
 		path := filepath.Join(md.Name, "index.html")
 		if err := render(path, g.moduleTmpl, md); err != nil {
 			return fmt.Errorf("generating module page %s: %w", md.Name, err)
 		}
 		slog.Debug("generated module page", "module", md.Name)
+
+		for _, sub := range md.Subpackages {
+			subPath := filepath.Join(sub.Name, "index.html")
+			if err := render(subPath, g.moduleTmpl, sub); err != nil {
+				return fmt.Errorf("generating subpackage page %s: %w", sub.Name, err)
+			}
+			slog.Debug("generated subpackage page", "subpackage", sub.Name)
+		}
 	}
 
 	// Conditional site-level pages

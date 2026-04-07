@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -196,6 +196,21 @@ func TestGenerate_CleanRemovesExistingDir(t *testing.T) {
 	assert.FileExists(t, filepath.Join(outputDir, "foo", "index.html"))
 }
 
+func TestGenerate_NestedOutputDir(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "some", "dir", "dist")
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assert.FileExists(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"))
+	assert.FileExists(t, filepath.Join(cfg.Output.Dir, "index.html"))
+	assert.FileExists(t, filepath.Join(cfg.Output.Dir, "404.html"))
+}
+
 func TestGenerate_InMemory(t *testing.T) {
 	cfg := minimalConfig()
 
@@ -251,10 +266,11 @@ func TestBuildModuleData_SubpackageImportPath(t *testing.T) {
 	}
 
 	modules := buildModuleData(cfg, subpackages)
-	require.Len(t, modules, 2)
+	require.Len(t, modules, 1)
+	require.Len(t, modules[0].Subpackages, 1)
 
 	// Subpackage should have the parent module's import path (for go-import root-path)
-	sub := modules[1]
+	sub := modules[0].Subpackages[0]
 	assert.Equal(t, "foo/cmd/tool", sub.Name)
 	assert.Equal(t, "go.example.com/foo", sub.ImportPath, "subpackage go-import must point to module root")
 	assert.Equal(t, "https://pkg.go.dev/go.example.com/foo/cmd/tool", sub.Redirect)

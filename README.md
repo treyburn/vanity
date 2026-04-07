@@ -1,7 +1,7 @@
 <div align="center">
     <img src="vanity-logo.png" alt="Vanity Logo">
     <h1>Vanity</h1>
-    <p>An opinionated, minimalist static site generator for redirecting vanity Go module URLs. Take control of your Go modules by owning your namespace.</p>
+    <p>An opinionated, minimalist, static site generator CLI for redirecting vanity Go module URLs. Take control of your Go modules by owning your namespace.</p>
     <a href="https://github.com/treyburn/vanity/actions"><img src="https://github.com/treyburn/vanity/actions/workflows/ci.yaml/badge.svg" alt="GHA Build"></a>
     <a href="https://codecov.io/gh/treyburn/vanity"><img src="https://codecov.io/gh/treyburn/vanity/graph/badge.svg?token=15ANARDU98" alt="codecov"></a>
 </div>
@@ -19,7 +19,7 @@ Owning your Go module namespace makes you sovereign over your code. This sets yo
 ### Simplicity
 Vanity generates plain-Jane static HTML pages. No servers, no databases, no runtime dependencies, no BS. Point to your domain, push your pages, and you're done.
 
-Vanity makes decisions so you don't have to. With the built-in templates, most users won't need to configure anything but their domain and list of modules.
+Vanity makes decisions so you don't have to. With built-in templates, most users won't need to configure anything beyond their domain and list of modules.
 
 ---
 
@@ -31,7 +31,7 @@ You can install vanity directly with your Go toolchain.
 go install go.treyburn.dev/vanity@latest
 ```
 
-Once installed, you can bootstrap your local config with the required fields.
+Once installed, you can bootstrap your local config with the just required fields.
 
 ```shell
 vanity init
@@ -40,14 +40,44 @@ vanity init
 ---
 
 ## Usage
-Vanity is driven by a single YAML file and a handful of CLI commands. See [CLI Commands](#cli-commands) for available commands, [Configuration](#configuration) for setting up your `.vanity.yml`, and [Customization](#customization) for tweaking the output.
+Vanity is driven by a single YAML file and a handful of CLI commands. See [CLI Commands](#cli-commands) for available commands and [Configuration](#configuration) for setting up your `.vanity.yml`.
 
-For most users, it is as simple to get up and running as running `vanity init`, fulling in a few required values, then running `vanity generate`. With that you're ready to ship your static pages.
+For most users, it's as simple to get going as running `vanity init`, filling in a few required fields, then running `vanity generate`. With that you're ready to ship your static pages.
 
 ### CLI Commands
+Most users can use the following commands as a basic quickstart to get their pages generated.
+```shell
+# install Vanity
+go install go.treyburn.dev/vanity@latest
+
+# move to the dir you want to store these pages in
+cd ~/repo/deployment
+
+# generate your config file
+vanity init
+
+# add your domain and module redirect info and save
+vi .vanity.yml
+
+# check that everything is configured correct
+vanity check
+
+# generate your pages
+vanity generate
+
+# run a localhost server with some sample curl calls to validate
+vanity serve
+
+# and now you're ready to publish
+scp -r ./dist user@your.domain.com
+```
+
+If you want to see the full set of commands and flags available you can simply run `vanity --help`.
 ```yaml
+# vanity --help
+
 Usage: vanity <command> [flags]
- A static site generator for Go vanity URLs.
+ A static site generator CLI for Go vanity URLs.
 
 Flags:
   -h, --help                 Show context-sensitive help.
@@ -58,11 +88,11 @@ Commands:
   init [flags]
     Generate a minimal .vanity.yml config file (use --verbose for full spec).
 
-  check [flags]
-    Validate the .vanity.yml configuration.
-
   generate [flags]
     Generate static HTML files from configuration.
+
+  check [flags]
+    Validate the .vanity.yml configuration.
 
   preview [flags]
     Generate in-memory and serve via local HTTP.
@@ -81,12 +111,12 @@ Help:
 ```
 
 ### Configuration
-All configuration is handled via the `.vanity.yml` YAML file. You can generate a minimal configuration file with just the required fields by running:
+All configuration is handled via the `.vanity.yml` YAML file. You can generate a minimal configuration file with just the required fields by running:name: release.
 ```shell
 vanity init
 ```
 
-Or you can generate a full configuration on all possible fields with comments to the purpose by running:
+Or you can generate a full configuration on all possible fields (ore-filled with example values and comments) by running:
 ```shell
 vanity init --verbose
 ```
@@ -107,17 +137,12 @@ modules:
     repo: https://github.com/example/my-module # REQUIRED: full git repository URL
 ```
 
-### Customization
-Coming soon.
-
-Bring-your-own-templates is not supported yet.
-
 ---
 
 ## Examples
 As you might have guessed, Vanity uses Vanity to provide it's vanity URL redirection.
 
-I've set this up to push to Cloudflare Pages for my `go.treyburn.dev` domain as an action on publish. You can check out the [repository for that here](https://github.com/treyburn), and I have a small [write-up on my blog](https://treyburn.dev).
+I've set this up to push to Cloudflare Pages for my `go.treyburn.dev` domain as an [action on release](./.github/workflows/release.yml) in this repository. It kicks offs an action to update and publish in another repo. You can check out the [repository for that here](https://github.com/treyburn/pkgs), and I have a small [write-up on my blog](https://treyburn.dev) explaining how it works.
 
 ---
 
@@ -153,7 +178,7 @@ modules:
     go_source: true # Override defaults.go_source for this module
     redirect: https://pkg.go.dev/example.com/my-module # Override browser redirect URL for this module
     local_path: ./my-module # Local checkout path (default: in-memory clone from repo remote if not specified)
-    # Subpackage discovery settings
+    # Subpackage discovery settings (enabled by default in 'auto' mode - set subpackages:mode:off to disable)
     subpackages:
       mode: auto # Options: off | auto | explicit (defaults to 'auto')
       exclude: # Directories to skip in auto mode (defaults to [internal, testdata] in 'auto' mode)

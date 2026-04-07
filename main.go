@@ -9,8 +9,8 @@ import (
 
 	"github.com/alecthomas/kong"
 
-	"go.treyburn.dev/vanity/internal/cmd"
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/cmd"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 	var c cmd.CLI
 	kongCtx := kong.Parse(&c,
 		kong.Name("vanity"),
-		kong.Description("A static site generator for Go vanity URLs."),
+		kong.Description("A static site generator CLI for Go vanity URLs."),
 		kong.UsageOnError(),
 		kong.BindTo(ctx, (*context.Context)(nil)),
 	)

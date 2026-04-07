@@ -30,7 +30,7 @@ func TestIntegration_ValidateRemote_Unreachable(t *testing.T) {
 }
 
 func TestIntegration_ValidateLocalRepo(t *testing.T) {
-	// Use the current repo (two levels up from internal/vcs)
+	// Use the current repo (two levels up from pkg/vcs)
 	err := ValidateLocalRepo("../..")
 	require.NoError(t, err)
 }
@@ -42,18 +42,18 @@ func TestIntegration_ValidateLocalRepo_NotARepo(t *testing.T) {
 	assert.Contains(t, err.Error(), "is not a git repository")
 }
 
-func TestIntegration_DiscoverSubpackages_Remote(t *testing.T) {
+func TestIntegration_DiscoverSubpackages_Local(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
 
-	pkgs, err := DiscoverSubpackages(context.Background(), testRepo, nil)
+	pkgs, err := DiscoverSubpackages(context.Background(), testRepo, nil, WithLocalPath("../.."))
 	require.NoError(t, err)
 
-	// Light assertion: the repo has at least one subpackage (internal/cmd, internal/config, etc.)
+	// Light assertion: the repo has at least one subpackage (pkg/cmd, pkg/config, etc.)
 	assert.NotEmpty(t, pkgs)
-	assert.Contains(t, pkgs, "internal/cmd")
-	assert.Contains(t, pkgs, "internal/config")
+	assert.Contains(t, pkgs, "pkg/cmd")
+	assert.Contains(t, pkgs, "pkg/config")
 
 	// Root package (main.go) should not appear — it's the module itself
 	assert.NotContains(t, pkgs, ".")
@@ -62,6 +62,7 @@ func TestIntegration_DiscoverSubpackages_Remote(t *testing.T) {
 	for _, pkg := range pkgs {
 		assert.NotContains(t, pkg, "vendor")
 		assert.NotContains(t, pkg, "testdata")
+		assert.NotContains(t, pkg, "internal")
 		assert.NotContains(t, pkg, ".git")
 		assert.NotContains(t, pkg, ".github")
 	}
@@ -72,12 +73,12 @@ func TestIntegration_DiscoverSubpackages_WithExclude(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	pkgs, err := DiscoverSubpackages(context.Background(), testRepo, []string{"internal/cmd"}, WithLocalPath("../.."))
+	pkgs, err := DiscoverSubpackages(context.Background(), testRepo, []string{"pkg/cmd"}, WithLocalPath("../.."))
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, pkgs)
-	assert.NotContains(t, pkgs, "internal/cmd")
-	assert.Contains(t, pkgs, "internal/config")
+	assert.NotContains(t, pkgs, "pkg/cmd")
+	assert.Contains(t, pkgs, "pkg/config")
 }
 
 func TestIntegration_DiscoverSubpackages_LocalPath(t *testing.T) {
@@ -85,18 +86,19 @@ func TestIntegration_DiscoverSubpackages_LocalPath(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	// Use the current repo as the local path (two levels up from internal/vcs)
+	// Use the current repo as the local path (two levels up from pkg/vcs)
 	pkgs, err := DiscoverSubpackages(context.Background(), testRepo, nil, WithLocalPath("../.."))
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, pkgs)
-	assert.Contains(t, pkgs, "internal/cmd")
-	assert.Contains(t, pkgs, "internal/config")
+	assert.Contains(t, pkgs, "pkg/cmd")
+	assert.Contains(t, pkgs, "pkg/config")
 	assert.NotContains(t, pkgs, ".")
 
 	for _, pkg := range pkgs {
 		assert.NotContains(t, pkg, "vendor")
 		assert.NotContains(t, pkg, "testdata")
+		assert.NotContains(t, pkg, "internal")
 		assert.NotContains(t, pkg, ".git")
 		assert.NotContains(t, pkg, ".github")
 	}

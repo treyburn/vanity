@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 type CleanCmd struct{}

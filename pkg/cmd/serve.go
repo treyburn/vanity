@@ -4,8 +4,8 @@ import (
 	"context"
 	"os"
 
-	"go.treyburn.dev/vanity/internal/config"
-	"go.treyburn.dev/vanity/internal/server"
+	"go.treyburn.dev/vanity/pkg/config"
+	"go.treyburn.dev/vanity/pkg/server"
 )
 
 type ServeCmd struct {

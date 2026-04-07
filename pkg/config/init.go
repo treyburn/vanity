@@ -57,9 +57,9 @@ func CommentedDefault() yaml.CommentMap {
 		"$.modules[0].go_source":           {yaml.LineComment(" Override defaults.go_source for this module")},
 		"$.modules[0].redirect":            {yaml.LineComment(" Override browser redirect URL for this module")},
 		"$.modules[0].local_path":          {yaml.LineComment(" Local checkout path (default: in-memory clone from repo remote if not specified)")},
-		"$.modules[0].subpackages":         {yaml.HeadComment(" Subpackage discovery settings")},
+		"$.modules[0].subpackages":         {yaml.HeadComment(" Subpackage discovery settings (enabled by default in 'auto' mode - set subpackages:mode:off to disable)")},
 		"$.modules[0].subpackages.mode":    {yaml.LineComment(" Options: off | auto | explicit (defaults to 'auto')")},
-		"$.modules[0].subpackages.exclude": {yaml.LineComment(" Directories to skip in auto mode (defaults to [internal, testdata] in 'auto' mode)")},
+		"$.modules[0].subpackages.exclude": {yaml.LineComment(" Directories to skip in auto mode (defaults to [pkg, testdata] in 'auto' mode)")},
 		"$.modules[0].subpackages.paths":   {yaml.LineComment(" Allow-list exact subpackage paths (explicit mode only)")},
 	}
 }

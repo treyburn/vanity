@@ -175,7 +175,7 @@ func ExampleConfig() *Config {
 			LocalPath: "./my-module",
 			Subpackages: &SubpackageConfig{
 				Mode:    SubpackageModeAuto,
-				Exclude: []string{"internal", "testdata"},
+				Exclude: []string{"pkg", "testdata"},
 				Paths:   []string{"sub/pkg"},
 			},
 		},
@@ -221,13 +221,14 @@ func (c *Config) Resolve() {
 		if m.Redirect == "" {
 			m.Redirect = c.Defaults.RedirectRoot + "/" + c.Domain + "/" + m.Name
 		}
-		if m.Subpackages != nil {
-			if m.Subpackages.Mode == "" {
-				m.Subpackages.Mode = SubpackageModeAuto
-			}
-			if m.Subpackages.Mode == SubpackageModeAuto && len(m.Subpackages.Exclude) == 0 {
-				m.Subpackages.Exclude = []string{"internal", "testdata"}
-			}
+		if m.Subpackages == nil {
+			m.Subpackages = &SubpackageConfig{}
+		}
+		if m.Subpackages.Mode == "" {
+			m.Subpackages.Mode = SubpackageModeAuto
+		}
+		if m.Subpackages.Mode == SubpackageModeAuto && len(m.Subpackages.Exclude) == 0 {
+			m.Subpackages.Exclude = []string{"pkg", "testdata"}
 		}
 	}
 }

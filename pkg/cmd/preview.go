@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"testing/fstest"
 
-	"go.treyburn.dev/vanity/internal/config"
-	"go.treyburn.dev/vanity/internal/generator"
-	"go.treyburn.dev/vanity/internal/server"
+	"go.treyburn.dev/vanity/pkg/config"
+	"go.treyburn.dev/vanity/pkg/generator"
+	"go.treyburn.dev/vanity/pkg/server"
 )
 
 type PreviewCmd struct {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"go.treyburn.dev/vanity/internal/config"
-	"go.treyburn.dev/vanity/internal/generator"
-	"go.treyburn.dev/vanity/internal/vcs"
+	"go.treyburn.dev/vanity/pkg/config"
+	"go.treyburn.dev/vanity/pkg/generator"
+	"go.treyburn.dev/vanity/pkg/vcs"
 )
 
 type GenerateCmd struct{}

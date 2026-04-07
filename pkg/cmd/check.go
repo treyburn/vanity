@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"go.treyburn.dev/vanity/internal/config"
+	"go.treyburn.dev/vanity/pkg/config"
 )
 
 type CheckCmd struct {
