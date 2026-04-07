@@ -78,15 +78,14 @@ jobs:
             vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz \
             vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}_checksums.txt
 
-# TODO - not configured yet
-#  trigger-deploy:
-#    needs: [release]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Trigger pkgs deploy
-#        env:
-#          GH_TOKEN: ${{ secrets.GO_PAGES_PAT }}
-#        run: |
-#          gh api repos/treyburn/pkgs/dispatches \
-#            -f event_type=vanity-release \
-#            -f "client_payload[version]=${GITHUB_REF_NAME}"
+  trigger-deploy:
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger pkgs deploy
+        env:
+          GH_TOKEN: ${{ secrets.GO_PAGES_PAT }}
+        run: |
+          gh api repos/treyburn/pkgs/dispatches \
+            -f event_type=vanity-release \
+            -f "client_payload[version]=${GITHUB_REF_NAME}"
