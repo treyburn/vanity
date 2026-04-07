@@ -1,2 +1,92 @@
-#name: Release
-# TODO
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.1
+      - run: go mod download
+      - run: go vet ./...
+      - run: go test ./...
+
+  lint:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.1
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.11.4
+
+  release:
+    needs: [test, lint]
+    runs-on: ubuntu-slim
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.1
+
+      - name: Build binary
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
+            -trimpath \
+            -o vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }} \
+            .
+
+      - name: Create tarball
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          tar -czf vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}
+
+      - name: Generate checksums
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          sha256sum vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz > vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}_checksums.txt
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          gh release upload "$VERSION" \
+            vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz \
+            vanity_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}_checksums.txt
+
+# TODO - not configured yet
+#  trigger-deploy:
+#    needs: [release]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Trigger pkgs deploy
+#        env:
+#          GH_TOKEN: ${{ secrets.GO_PAGES_PAT }}
+#        run: |
+#          gh api repos/treyburn/pkgs/dispatches \
+#            -f event_type=vanity-release \
+#            -f "client_payload[version]=${GITHUB_REF_NAME}"
