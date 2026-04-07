@@ -29,3 +29,5 @@ domain: go.example.com
 modules:
   - name: mylib
     repo: https://github.com/example/mylib
+    subpackages:
+      mode: off
