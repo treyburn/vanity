@@ -9,8 +9,10 @@ import (
 	"go.treyburn.dev/vanity/pkg/config"
 )
 
+// CleanCmd removes the generated output directory.
 type CleanCmd struct{}
 
+// Run removes the output directory if it exists.
 func (c *CleanCmd) Run(cfg *config.Config) error {
 	dir := cfg.Output.Dir
 

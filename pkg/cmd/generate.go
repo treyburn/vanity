@@ -10,8 +10,10 @@ import (
 	"go.treyburn.dev/vanity/pkg/vcs"
 )
 
+// GenerateCmd produces static HTML files from configuration.
 type GenerateCmd struct{}
 
+// Run generates the static site.
 func (g *GenerateCmd) Run(ctx context.Context, cfg *config.Config) error {
 	gen, err := generator.New()
 	if err != nil {

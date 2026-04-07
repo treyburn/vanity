@@ -10,11 +10,13 @@ import (
 	"go.treyburn.dev/vanity/pkg/server"
 )
 
+// PreviewCmd generates in-memory and serves via local HTTP.
 type PreviewCmd struct {
 	Port  int  `default:"8080"  help:"Port for the local HTTP server."                name:"port"`
 	Quiet bool `default:"false" help:"Suppress the startup banner and curl examples." name:"quiet"`
 }
 
+// Run generates in-memory and starts the preview server.
 func (p *PreviewCmd) Run(ctx context.Context, cfg *config.Config) error {
 	if err := config.ValidateBasic(cfg); err != nil {
 		return err

@@ -10,11 +10,13 @@ import (
 	"github.com/lmittmann/tint"
 )
 
+// ConfigFileName is the default configuration file name.
 const ConfigFileName = ".vanity.yml"
 
 // LogLevel is an enum for log verbosity.
 type LogLevel string
 
+// Log level constants.
 const (
 	LogLevelDebug LogLevel = "debug"
 	LogLevelInfo  LogLevel = "info"
@@ -25,6 +27,7 @@ const (
 // LogFormat is an enum for log output format.
 type LogFormat string
 
+// Log format constants.
 const (
 	LogFormatText LogFormat = "text"
 	LogFormatJSON LogFormat = "json"
@@ -33,12 +36,14 @@ const (
 // SubpackageMode is an enum for subpackage discovery behavior.
 type SubpackageMode string
 
+// Subpackage mode constants.
 const (
 	SubpackageModeOff      SubpackageMode = "off"
 	SubpackageModeAuto     SubpackageMode = "auto"
 	SubpackageModeExplicit SubpackageMode = "explicit"
 )
 
+// Config is the top-level vanity configuration.
 type Config struct {
 	Log      LogConfig      `yaml:"log,omitempty"`
 	Output   OutputConfig   `yaml:"output,omitempty"`
@@ -47,6 +52,7 @@ type Config struct {
 	Modules  []Module       `yaml:"modules"`
 }
 
+// LogConfig controls logging behavior.
 type LogConfig struct {
 	Level  LogLevel  `yaml:"level"`
 	Format LogFormat `yaml:"format"`
@@ -85,6 +91,7 @@ func (l LogConfig) NewLogger() (*slog.Logger, error) {
 	return slog.New(handler), nil
 }
 
+// OutputConfig controls generated output settings.
 type OutputConfig struct {
 	Dir      string `yaml:"dir"`
 	Clean    bool   `yaml:"clean"`
@@ -94,12 +101,14 @@ type OutputConfig struct {
 	Sitemap  bool   `yaml:"sitemap"`
 }
 
+// DefaultsConfig holds default values inherited by modules.
 type DefaultsConfig struct {
 	Branch       string `yaml:"branch"`
 	GoSource     bool   `yaml:"go_source"`
 	RedirectRoot string `yaml:"redirect_root"`
 }
 
+// Module represents a single Go module to host.
 type Module struct {
 	Name        string            `yaml:"name"`
 	Repo        string            `yaml:"repo"`
@@ -115,6 +124,7 @@ func (m Module) ImportPath(domain string) string {
 	return domain + "/" + m.Name
 }
 
+// SubpackageConfig controls subpackage discovery for a module.
 type SubpackageConfig struct {
 	Mode    SubpackageMode `yaml:"mode"`
 	Exclude []string       `yaml:"exclude,omitempty"`

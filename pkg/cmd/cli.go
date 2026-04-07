@@ -1,5 +1,6 @@
 package cmd
 
+// CLI defines the top-level command tree parsed by Kong.
 type CLI struct {
 	Init     InitCmd     `cmd:"" help:"Generate a minimal .vanity.yml config file (use --verbose for full spec)."`
 	Generate GenerateCmd `cmd:"" help:"Generate static HTML files from configuration."`
