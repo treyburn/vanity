@@ -8,7 +8,9 @@ import (
 	"go.treyburn.dev/vanity/internal/config"
 )
 
-type InitCmd struct{}
+type InitCmd struct {
+	Verbose bool `help:"Include all configuration options with comments." short:"v"`
+}
 
 func (c *InitCmd) Run() error {
 	if _, err := os.Stat(config.ConfigFileName); err == nil {
@@ -26,8 +28,14 @@ func (c *InitCmd) Run() error {
 		}
 	}()
 
-	if err = config.WriteDefault(f); err != nil {
-		return fmt.Errorf("writing %s: %w", config.ConfigFileName, err)
+	if c.Verbose {
+		if err = config.WriteDefault(f); err != nil {
+			return fmt.Errorf("writing %s: %w", config.ConfigFileName, err)
+		}
+	} else {
+		if err = config.WriteMinimal(f); err != nil {
+			return fmt.Errorf("writing %s: %w", config.ConfigFileName, err)
+		}
 	}
 
 	slog.Info("created config file", "path", config.ConfigFileName)

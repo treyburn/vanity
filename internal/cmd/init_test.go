@@ -26,6 +26,25 @@ func TestInitCmd_CreatesFile(t *testing.T) {
 	assert.Greater(t, info.Size(), int64(0))
 }
 
+func TestInitCmd_Verbose(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.Chdir(dir))
+
+	cmd := &InitCmd{Verbose: true}
+	err := cmd.Run()
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(dir, config.ConfigFileName))
+	require.NoError(t, err)
+
+	output := string(data)
+	// Verbose should include all config sections
+	assert.Contains(t, output, "log:")
+	assert.Contains(t, output, "output:")
+	assert.Contains(t, output, "defaults:")
+	assert.Contains(t, output, "subpackages:")
+}
+
 func TestInitCmd_ErrorIfExists(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.Chdir(dir))
