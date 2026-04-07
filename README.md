@@ -2,7 +2,7 @@
     <img src="vanity-logo.png" alt="Vanity Logo">
     <h1>Vanity</h1>
     <p>An opinionated, minimalist, static site generator CLI for redirecting vanity Go module URLs. Take control of your Go modules by owning your namespace.</p>
-    <a href="https://github.com/treyburn/vanity/actions"><img src="https://github.com/treyburn/vanity/actions/workflows/ci.yaml/badge.svg" alt="GHA Build"></a>
+    <a href="https://github.com/treyburn/vanity/actions"><img src="https://github.com/treyburn/vanity/actions/workflows/ci.yml/badge.svg" alt="GHA Build"></a>
     <a href="https://codecov.io/gh/treyburn/vanity"><img src="https://codecov.io/gh/treyburn/vanity/graph/badge.svg?token=15ANARDU98" alt="codecov"></a>
 </div>
 

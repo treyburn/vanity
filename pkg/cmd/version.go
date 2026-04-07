@@ -6,8 +6,10 @@ import (
 	"runtime/debug"
 )
 
+// VersionCmd prints version information.
 type VersionCmd struct{}
 
+// Run prints version, commit, and Go version.
 func (v *VersionCmd) Run() error {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {

@@ -8,10 +8,12 @@ import (
 	"go.treyburn.dev/vanity/pkg/config"
 )
 
+// InitCmd scaffolds a new .vanity.yml config file.
 type InitCmd struct {
 	Verbose bool `help:"Include all configuration options with comments." short:"v"`
 }
 
+// Run creates the config file.
 func (c *InitCmd) Run() error {
 	if _, err := os.Stat(config.ConfigFileName); err == nil {
 		return fmt.Errorf("%s already exists", config.ConfigFileName)

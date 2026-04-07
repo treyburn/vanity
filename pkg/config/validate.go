@@ -16,10 +16,12 @@ type ValidationError struct {
 	error
 }
 
+// ExitCode returns 2 to signal a validation failure to Kong.
 func (v ValidationError) ExitCode() int {
 	return 2
 }
 
+// NewValidationError creates a ValidationError with the given message.
 func NewValidationError(msg string) ValidationError {
 	return ValidationError{errors.New(msg)}
 }
