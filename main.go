@@ -21,7 +21,7 @@ func main() {
 	var c cmd.CLI
 	kongCtx := kong.Parse(&c,
 		kong.Name("vanity"),
-		kong.Description("A static site generator for Go vanity URLs."),
+		kong.Description("A static site generator CLI for Go vanity URLs."),
 		kong.UsageOnError(),
 		kong.BindTo(ctx, (*context.Context)(nil)),
 	)
