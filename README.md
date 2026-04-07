@@ -178,7 +178,7 @@ modules:
     go_source: true # Override defaults.go_source for this module
     redirect: https://pkg.go.dev/example.com/my-module # Override browser redirect URL for this module
     local_path: ./my-module # Local checkout path (default: in-memory clone from repo remote if not specified)
-    # Subpackage discovery settings
+    # Subpackage discovery settings (enabled by default in 'auto' mode - set subpackages:mode:off to disable)
     subpackages:
       mode: auto # Options: off | auto | explicit (defaults to 'auto')
       exclude: # Directories to skip in auto mode (defaults to [internal, testdata] in 'auto' mode)
