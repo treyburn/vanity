@@ -22,7 +22,7 @@ func (p *PreviewCmd) Run(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	gen, err := generator.New()
+	gen, err := generator.New(cfg.Templates)
 	if err != nil {
 		return err
 	}
