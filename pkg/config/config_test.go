@@ -411,13 +411,14 @@ func TestTemplatesConfig_HasCustomTemplates(t *testing.T) {
 
 func TestTemplatesConfig_AllTemplatePaths(t *testing.T) {
 	cfg := TemplatesConfig{
-		Index:    "t/index.html",
-		Module:   "t/module.html",
-		NotFound: "t/404.html",
-		Partials: []string{"t/header.html", "t/footer.html"},
+		Index:     "t/index.html",
+		Module:    "t/module.html",
+		Submodule: "t/submodule.html",
+		NotFound:  "t/404.html",
+		Partials:  []string{"t/header.html", "t/footer.html"},
 	}
 	paths := cfg.AllTemplatePaths()
-	assert.Equal(t, []string{"t/index.html", "t/module.html", "t/404.html", "t/header.html", "t/footer.html"}, paths)
+	assert.Equal(t, []string{"t/index.html", "t/module.html", "t/submodule.html", "t/404.html", "t/header.html", "t/footer.html"}, paths)
 }
 
 func TestTemplatesConfig_AllTemplatePaths_Empty(t *testing.T) {
