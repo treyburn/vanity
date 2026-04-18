@@ -18,7 +18,7 @@ var funcMap = html.FuncMap{
 	"title":     cases.Title(language.English).String,
 	"join":      strings.Join,
 	"sprintf":   fmt.Sprintf,
-	"now":       func() time.Time { return time.Now().UTC().Truncate(24 * time.Hour) },
+	"now":       func() time.Time { return time.Now().UTC() },
 	"year":      func() int { return time.Now().Year() },
 	"contains":  strings.Contains,
 	"hasPrefix": strings.HasPrefix,

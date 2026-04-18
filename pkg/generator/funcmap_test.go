@@ -62,15 +62,15 @@ func TestFuncMap_Now(t *testing.T) {
 	assert.Equal(t, expected, buf.String())
 }
 
-func TestFuncMap_NowIsMidnightUTC(t *testing.T) {
-	tmpl, err := html.New("test").Funcs(funcMap).Parse(`{{now.Format "15:04:05 MST"}}`)
+func TestFuncMap_NowIsUTC(t *testing.T) {
+	tmpl, err := html.New("test").Funcs(funcMap).Parse(`{{now.Format "MST"}}`)
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, nil)
 	require.NoError(t, err)
 
-	assert.Equal(t, "00:00:00 UTC", buf.String())
+	assert.Equal(t, "UTC", buf.String())
 }
 
 func TestFuncMap_Year(t *testing.T) {
