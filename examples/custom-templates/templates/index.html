@@ -1,0 +1,17 @@
+{{define "head"}}
+<link rel="stylesheet" href="/css/style.css">
+{{end}}
+
+{{define "body"}}
+{{template "header" .}}
+<main>
+  <h1>Go Modules</h1>
+  <p class="subtitle">Hosted on {{.Domain}}</p>
+  <ul class="module-list">
+  {{- range .Modules}}
+    <li><a href="/{{.Name}}">{{$.Domain}}/{{.Name}}</a></li>
+  {{- end}}
+  </ul>
+</main>
+{{template "footer" .}}
+{{end}}

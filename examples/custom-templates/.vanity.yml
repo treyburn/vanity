@@ -1,0 +1,14 @@
+domain: go.example.com
+modules:
+  - name: mylib
+    repo: https://github.com/example/mylib
+  - name: toolkit
+    repo: https://github.com/example/toolkit
+
+templates:
+  index: templates/index.html
+  partials:
+    - templates/header.html
+    - templates/footer.html
+  assets:
+    - css/
