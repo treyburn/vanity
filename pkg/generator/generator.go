@@ -44,26 +44,32 @@ type SiteData struct {
 
 // Generator produces static site output from a config.
 type Generator struct {
-	moduleTmpl   *html.Template
-	indexTmpl    *html.Template
-	notFoundTmpl *html.Template
-	robotsTmpl   *text.Template
-	sitemapTmpl  *text.Template
+	moduleTmpl    *html.Template
+	submoduleTmpl *html.Template
+	indexTmpl     *html.Template
+	notFoundTmpl  *html.Template
+	robotsTmpl    *text.Template
+	sitemapTmpl   *text.Template
 }
 
 // New parses embedded templates and returns a ready-to-use Generator.
 func New() (*Generator, error) {
-	moduleTmpl, err := html.ParseFS(templateFS, "templates/module.html.tmpl")
+	moduleTmpl, err := html.New("module.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/module.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing module template: %w", err)
 	}
 
-	indexTmpl, err := html.ParseFS(templateFS, "templates/index.html.tmpl")
+	submoduleTmpl, err := html.New("submodule.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/submodule.html.tmpl")
+	if err != nil {
+		return nil, fmt.Errorf("parsing submodule template: %w", err)
+	}
+
+	indexTmpl, err := html.New("index.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/index.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing index template: %w", err)
 	}
 
-	notFoundTmpl, err := html.ParseFS(templateFS, "templates/not_found.html.tmpl")
+	notFoundTmpl, err := html.New("not_found.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/not_found.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing not_found template: %w", err)
 	}
@@ -79,11 +85,12 @@ func New() (*Generator, error) {
 	}
 
 	return &Generator{
-		moduleTmpl:   moduleTmpl,
-		indexTmpl:    indexTmpl,
-		notFoundTmpl: notFoundTmpl,
-		robotsTmpl:   robotsTmpl,
-		sitemapTmpl:  sitemapTmpl,
+		moduleTmpl:    moduleTmpl,
+		submoduleTmpl: submoduleTmpl,
+		indexTmpl:     indexTmpl,
+		notFoundTmpl:  notFoundTmpl,
+		robotsTmpl:    robotsTmpl,
+		sitemapTmpl:   sitemapTmpl,
 	}, nil
 }
 
@@ -210,7 +217,7 @@ func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string
 
 		for _, sub := range md.Subpackages {
 			subPath := filepath.Join(sub.Name, "index.html")
-			if err := render(subPath, g.moduleTmpl, sub); err != nil {
+			if err := render(subPath, g.submoduleTmpl, sub); err != nil {
 				return fmt.Errorf("generating subpackage page %s: %w", sub.Name, err)
 			}
 			slog.Debug("generated subpackage page", "subpackage", sub.Name)
