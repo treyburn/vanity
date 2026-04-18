@@ -53,7 +53,11 @@ type Generator struct {
 }
 
 // New parses embedded templates and returns a ready-to-use Generator.
-func New() (*Generator, error) {
+// When tmplCfg specifies user template paths, those partials are composed
+// with the built-in base templates so that user-defined {{define "head"}}
+// and {{define "body"}} blocks override the defaults.
+func New(tmplCfg config.TemplatesConfig) (*Generator, error) {
+	// Parse base templates from embedded FS
 	moduleTmpl, err := html.New("module.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/module.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing module template: %w", err)
@@ -84,6 +88,34 @@ func New() (*Generator, error) {
 		return nil, fmt.Errorf("parsing sitemap template: %w", err)
 	}
 
+	// Apply user template overrides if configured
+	if tmplCfg.HasCustomTemplates() {
+		moduleTmpl, err = applyUserPartials(moduleTmpl, tmplCfg.Module, tmplCfg.Partials)
+		if err != nil {
+			return nil, fmt.Errorf("applying user module template: %w", err)
+		}
+
+		// Submodule falls back to module partial if not specified
+		submodulePartial := tmplCfg.Submodule
+		if submodulePartial == "" {
+			submodulePartial = tmplCfg.Module
+		}
+		submoduleTmpl, err = applyUserPartials(submoduleTmpl, submodulePartial, tmplCfg.Partials)
+		if err != nil {
+			return nil, fmt.Errorf("applying user submodule template: %w", err)
+		}
+
+		indexTmpl, err = applyUserPartials(indexTmpl, tmplCfg.Index, tmplCfg.Partials)
+		if err != nil {
+			return nil, fmt.Errorf("applying user index template: %w", err)
+		}
+
+		notFoundTmpl, err = applyUserPartials(notFoundTmpl, tmplCfg.NotFound, tmplCfg.Partials)
+		if err != nil {
+			return nil, fmt.Errorf("applying user not_found template: %w", err)
+		}
+	}
+
 	return &Generator{
 		moduleTmpl:    moduleTmpl,
 		submoduleTmpl: submoduleTmpl,
@@ -92,6 +124,48 @@ func New() (*Generator, error) {
 		robotsTmpl:    robotsTmpl,
 		sitemapTmpl:   sitemapTmpl,
 	}, nil
+}
+
+// applyUserPartials composes user template files with a base template.
+// It clones the base, parses composition partials first, then the page
+// partial. User {{define "head"}} and {{define "body"}} blocks override
+// the base template's {{block}} defaults.
+//
+// If pagePartial is empty, only composition partials are applied.
+// If both are empty, the base template is returned unchanged.
+func applyUserPartials(base *html.Template, pagePartial string, compositionPartials []string) (*html.Template, error) {
+	if pagePartial == "" && len(compositionPartials) == 0 {
+		return base, nil
+	}
+
+	tmpl, err := base.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning base template: %w", err)
+	}
+
+	// Parse composition partials first so page partials can reference them
+	for _, path := range compositionPartials {
+		content, err := os.ReadFile(filepath.Clean(path))
+		if err != nil {
+			return nil, fmt.Errorf("reading partial %q: %w", path, err)
+		}
+		if _, err := tmpl.Parse(string(content)); err != nil {
+			return nil, fmt.Errorf("parsing partial %q: %w", path, err)
+		}
+	}
+
+	// Parse the page-specific partial (overrides head/body blocks)
+	if pagePartial != "" {
+		content, err := os.ReadFile(filepath.Clean(pagePartial))
+		if err != nil {
+			return nil, fmt.Errorf("reading template %q: %w", pagePartial, err)
+		}
+		if _, err := tmpl.Parse(string(content)); err != nil {
+			return nil, fmt.Errorf("parsing template %q: %w", pagePartial, err)
+		}
+	}
+
+	return tmpl, nil
 }
 
 // generateConfig controls how generated output is written.
