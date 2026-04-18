@@ -52,12 +52,51 @@ type Generator struct {
 	sitemapTmpl   *text.Template
 }
 
+// NewOption configures a Generator during construction.
+type NewOption func(*Generator) error
+
+// WithTemplates configures user-provided template partials. User-defined
+// {{define "head"}} and {{define "body"}} blocks override the built-in defaults.
+func WithTemplates(tmplCfg config.TemplatesConfig) NewOption {
+	return func(g *Generator) error {
+		if !tmplCfg.HasCustomTemplates() {
+			return nil
+		}
+
+		var err error
+
+		g.moduleTmpl, err = applyUserPartials(g.moduleTmpl, tmplCfg.Module, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user module template: %w", err)
+		}
+
+		// Submodule falls back to module partial if not specified
+		submodulePartial := tmplCfg.Submodule
+		if submodulePartial == "" {
+			submodulePartial = tmplCfg.Module
+		}
+		g.submoduleTmpl, err = applyUserPartials(g.submoduleTmpl, submodulePartial, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user submodule template: %w", err)
+		}
+
+		g.indexTmpl, err = applyUserPartials(g.indexTmpl, tmplCfg.Index, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user index template: %w", err)
+		}
+
+		g.notFoundTmpl, err = applyUserPartials(g.notFoundTmpl, tmplCfg.NotFound, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user not_found template: %w", err)
+		}
+
+		return nil
+	}
+}
+
 // New parses embedded templates and returns a ready-to-use Generator.
-// When tmplCfg specifies user template paths, those partials are composed
-// with the built-in base templates so that user-defined {{define "head"}}
-// and {{define "body"}} blocks override the defaults.
-func New(tmplCfg config.TemplatesConfig) (*Generator, error) {
-	// Parse base templates from embedded FS
+// Use WithTemplates to apply user-provided template partials.
+func New(opts ...NewOption) (*Generator, error) {
 	moduleTmpl, err := html.New("module.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/module.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing module template: %w", err)
@@ -88,42 +127,22 @@ func New(tmplCfg config.TemplatesConfig) (*Generator, error) {
 		return nil, fmt.Errorf("parsing sitemap template: %w", err)
 	}
 
-	// Apply user template overrides if configured
-	if tmplCfg.HasCustomTemplates() {
-		moduleTmpl, err = applyUserPartials(moduleTmpl, tmplCfg.Module, tmplCfg.Partials)
-		if err != nil {
-			return nil, fmt.Errorf("applying user module template: %w", err)
-		}
-
-		// Submodule falls back to module partial if not specified
-		submodulePartial := tmplCfg.Submodule
-		if submodulePartial == "" {
-			submodulePartial = tmplCfg.Module
-		}
-		submoduleTmpl, err = applyUserPartials(submoduleTmpl, submodulePartial, tmplCfg.Partials)
-		if err != nil {
-			return nil, fmt.Errorf("applying user submodule template: %w", err)
-		}
-
-		indexTmpl, err = applyUserPartials(indexTmpl, tmplCfg.Index, tmplCfg.Partials)
-		if err != nil {
-			return nil, fmt.Errorf("applying user index template: %w", err)
-		}
-
-		notFoundTmpl, err = applyUserPartials(notFoundTmpl, tmplCfg.NotFound, tmplCfg.Partials)
-		if err != nil {
-			return nil, fmt.Errorf("applying user not_found template: %w", err)
-		}
-	}
-
-	return &Generator{
+	g := &Generator{
 		moduleTmpl:    moduleTmpl,
 		submoduleTmpl: submoduleTmpl,
 		indexTmpl:     indexTmpl,
 		notFoundTmpl:  notFoundTmpl,
 		robotsTmpl:    robotsTmpl,
 		sitemapTmpl:   sitemapTmpl,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		if err = opt(g); err != nil {
+			return nil, err
+		}
+	}
+
+	return g, nil
 }
 
 // applyUserPartials composes user template files with a base template.
