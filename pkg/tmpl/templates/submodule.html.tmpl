@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="go-import" content="{{.ImportPath}} git {{.Repo}}">
+{{- if .GoSource}}
+  <meta name="go-source" content="{{.ImportPath}} {{.Repo}} {{.Repo}}/tree/{{.Branch}}{{`{/dir}`}} {{.Repo}}/blob/{{.Branch}}{{`{/dir}`}}/{{`{file}`}}#L{{`{line}`}}">
+{{- end}}
+  <meta http-equiv="refresh" content="0; url={{.Redirect}}">
+{{- block "head" .}}{{end}}
+</head>
+<body>
+{{- block "body" .}}
+  Redirecting to <a href="{{.Redirect}}">documentation</a>...
+{{- end}}
+</body>
+</html>

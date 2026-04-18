@@ -7,8 +7,11 @@
   <meta name="go-source" content="{{.ImportPath}} {{.Repo}} {{.Repo}}/tree/{{.Branch}}{{`{/dir}`}} {{.Repo}}/blob/{{.Branch}}{{`{/dir}`}}/{{`{file}`}}#L{{`{line}`}}">
 {{- end}}
   <meta http-equiv="refresh" content="0; url={{.Redirect}}">
+{{- block "head" .}}{{end}}
 </head>
 <body>
+{{- block "body" .}}
   Redirecting to <a href="{{.Redirect}}">documentation</a>...
+{{- end}}
 </body>
 </html>

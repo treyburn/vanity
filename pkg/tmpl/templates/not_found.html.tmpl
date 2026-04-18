@@ -3,8 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="refresh" content="3; url=/">
+{{- block "head" .}}{{end}}
 </head>
 <body>
+{{- block "body" .}}
   <p>Page not found. Redirecting to <a href="/">module index</a>...</p>
+{{- end}}
 </body>
 </html>

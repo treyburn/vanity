@@ -61,6 +61,13 @@ func CommentedDefault() yaml.CommentMap {
 		"$.modules[0].subpackages.mode":    {yaml.LineComment(" Options: off | auto | explicit (defaults to 'auto')")},
 		"$.modules[0].subpackages.exclude": {yaml.LineComment(" Directories to skip in auto mode (defaults to [pkg, testdata] in 'auto' mode)")},
 		"$.modules[0].subpackages.paths":   {yaml.LineComment(" Allow-list exact subpackage paths (explicit mode only)")},
+		"$.templates":                      {yaml.HeadComment(" Custom templates and static assets (all paths relative to .vanity.yml)")},
+		"$.templates.index":                {yaml.LineComment(" Custom body partial for the root index page")},
+		"$.templates.module":               {yaml.LineComment(" Custom body partial for module pages")},
+		"$.templates.submodule":            {yaml.LineComment(" Custom body partial for submodule pages (falls back to module)")},
+		"$.templates.not_found":            {yaml.LineComment(" Custom body partial for the 404 page")},
+		"$.templates.partials":             {yaml.LineComment(" Reusable template components (referenced via {{template \"name\" .}})")},
+		"$.templates.assets":               {yaml.LineComment(" Static files/dirs copied verbatim into the output directory")},
 	}
 }
 

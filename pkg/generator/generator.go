@@ -2,7 +2,6 @@ package generator
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,15 +13,8 @@ import (
 	text "text/template"
 
 	"go.treyburn.dev/vanity/pkg/config"
+	"go.treyburn.dev/vanity/pkg/tmpl"
 )
-
-// template is satisfied by both html/template.Template and text/template.Template.
-type template interface {
-	Execute(wr io.Writer, data any) error
-}
-
-//go:embed templates/*
-var templateFS embed.FS
 
 // ModuleData holds the template context for a single module page.
 type ModuleData struct {
@@ -44,47 +36,147 @@ type SiteData struct {
 
 // Generator produces static site output from a config.
 type Generator struct {
-	moduleTmpl   *html.Template
-	indexTmpl    *html.Template
-	notFoundTmpl *html.Template
-	robotsTmpl   *text.Template
-	sitemapTmpl  *text.Template
+	moduleTmpl    *html.Template
+	submoduleTmpl *html.Template
+	indexTmpl     *html.Template
+	notFoundTmpl  *html.Template
+	robotsTmpl    *text.Template
+	sitemapTmpl   *text.Template
+}
+
+// Option configures a Generator during construction.
+type Option func(*Generator) error
+
+// WithTemplates configures user-provided template partials. User-defined
+// {{define "head"}} and {{define "body"}} blocks override the built-in defaults.
+func WithTemplates(tmplCfg config.TemplatesConfig) Option {
+	return func(g *Generator) error {
+		if !tmplCfg.HasCustomTemplates() {
+			return nil
+		}
+
+		var err error
+
+		g.moduleTmpl, err = applyUserPartials(g.moduleTmpl, tmplCfg.Module, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user module template: %w", err)
+		}
+
+		// Submodule falls back to module partial if not specified
+		submodulePartial := tmplCfg.Submodule
+		if submodulePartial == "" {
+			submodulePartial = tmplCfg.Module
+		}
+		g.submoduleTmpl, err = applyUserPartials(g.submoduleTmpl, submodulePartial, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user submodule template: %w", err)
+		}
+
+		g.indexTmpl, err = applyUserPartials(g.indexTmpl, tmplCfg.Index, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user index template: %w", err)
+		}
+
+		g.notFoundTmpl, err = applyUserPartials(g.notFoundTmpl, tmplCfg.NotFound, tmplCfg.Partials)
+		if err != nil {
+			return fmt.Errorf("applying user not_found template: %w", err)
+		}
+
+		return nil
+	}
 }
 
 // New parses embedded templates and returns a ready-to-use Generator.
-func New() (*Generator, error) {
-	moduleTmpl, err := html.ParseFS(templateFS, "templates/module.html.tmpl")
+// Use WithTemplates to apply user-provided template partials.
+func New(opts ...Option) (*Generator, error) {
+	moduleTmpl, err := html.New("module.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/module.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing module template: %w", err)
 	}
 
-	indexTmpl, err := html.ParseFS(templateFS, "templates/index.html.tmpl")
+	submoduleTmpl, err := html.New("submodule.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/submodule.html.tmpl")
+	if err != nil {
+		return nil, fmt.Errorf("parsing submodule template: %w", err)
+	}
+
+	indexTmpl, err := html.New("index.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/index.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing index template: %w", err)
 	}
 
-	notFoundTmpl, err := html.ParseFS(templateFS, "templates/not_found.html.tmpl")
+	notFoundTmpl, err := html.New("not_found.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/not_found.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing not_found template: %w", err)
 	}
 
-	robotsTmpl, err := text.ParseFS(templateFS, "templates/robots.txt.tmpl")
+	robotsTmpl, err := text.ParseFS(tmpl.Templates, "templates/robots.txt.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing robots template: %w", err)
 	}
 
-	sitemapTmpl, err := text.ParseFS(templateFS, "templates/sitemap.xml.tmpl")
+	sitemapTmpl, err := text.ParseFS(tmpl.Templates, "templates/sitemap.xml.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing sitemap template: %w", err)
 	}
 
-	return &Generator{
-		moduleTmpl:   moduleTmpl,
-		indexTmpl:    indexTmpl,
-		notFoundTmpl: notFoundTmpl,
-		robotsTmpl:   robotsTmpl,
-		sitemapTmpl:  sitemapTmpl,
-	}, nil
+	g := &Generator{
+		moduleTmpl:    moduleTmpl,
+		submoduleTmpl: submoduleTmpl,
+		indexTmpl:     indexTmpl,
+		notFoundTmpl:  notFoundTmpl,
+		robotsTmpl:    robotsTmpl,
+		sitemapTmpl:   sitemapTmpl,
+	}
+
+	for _, opt := range opts {
+		if err = opt(g); err != nil {
+			return nil, err
+		}
+	}
+
+	return g, nil
+}
+
+// applyUserPartials composes user template files with a base template.
+// It clones the base, parses composition partials first, then the page
+// partial. User {{define "head"}} and {{define "body"}} blocks override
+// the base template's {{block}} defaults.
+//
+// If pagePartial is empty, only composition partials are applied.
+// If both are empty, the base template is returned unchanged.
+func applyUserPartials(base *html.Template, pagePartial string, compositionPartials []string) (*html.Template, error) {
+	if pagePartial == "" && len(compositionPartials) == 0 {
+		return base, nil
+	}
+
+	tmpl, err := base.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning base template: %w", err)
+	}
+
+	// Parse composition partials first so page partials can reference them
+	for _, path := range compositionPartials {
+		content, err := os.ReadFile(filepath.Clean(path))
+		if err != nil {
+			return nil, fmt.Errorf("reading partial %q: %w", path, err)
+		}
+		if _, err := tmpl.Parse(string(content)); err != nil {
+			return nil, fmt.Errorf("parsing partial %q: %w", path, err)
+		}
+	}
+
+	// Parse the page-specific partial (overrides head/body blocks)
+	if pagePartial != "" {
+		content, err := os.ReadFile(filepath.Clean(pagePartial))
+		if err != nil {
+			return nil, fmt.Errorf("reading template %q: %w", pagePartial, err)
+		}
+		if _, err := tmpl.Parse(string(content)); err != nil {
+			return nil, fmt.Errorf("parsing template %q: %w", pagePartial, err)
+		}
+	}
+
+	return tmpl, nil
 }
 
 // generateConfig controls how generated output is written.
@@ -93,11 +185,11 @@ type generateConfig struct {
 	memFS    fstest.MapFS
 }
 
-// Option configures Generate behavior.
-type Option func(*generateConfig)
+// GenerateOption configures Generate behavior.
+type GenerateOption func(*generateConfig)
 
 // WithInMemory causes Generate to write to the provided MapFS instead of disk.
-func WithInMemory(fs fstest.MapFS) Option {
+func WithInMemory(fs fstest.MapFS) GenerateOption {
 	return func(c *generateConfig) {
 		c.inMemory = true
 		c.memFS = fs
@@ -168,9 +260,11 @@ func buildModuleData(cfg *config.Config, subpackages map[string][]string) []Modu
 	return modules
 }
 
-// Generate renders all pages from the config. By default it writes to disk
+// Generate renders all pages from the config. By default, it writes to disk
 // using cfg.Output.Dir. Use WithInMemory to write to an in-memory filesystem instead.
-func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string, opts ...Option) error {
+//
+//nolint:gocognit // we'll refactor this later
+func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string, opts ...GenerateOption) error {
 	gc := &generateConfig{}
 	for _, opt := range opts {
 		opt(gc)
@@ -187,7 +281,7 @@ func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string
 	siteData := SiteData{Domain: cfg.Domain, Modules: modules}
 
 	// render gets a writer from the config and renders the template into it.
-	render := func(path string, tmpl template, data any) error {
+	render := func(path string, tmpl tmpl.Template, data any) error {
 		w, err := gc.writer(cfg.Output.Dir, path)
 		if err != nil {
 			return err
@@ -210,7 +304,7 @@ func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string
 
 		for _, sub := range md.Subpackages {
 			subPath := filepath.Join(sub.Name, "index.html")
-			if err := render(subPath, g.moduleTmpl, sub); err != nil {
+			if err := render(subPath, g.submoduleTmpl, sub); err != nil {
 				return fmt.Errorf("generating subpackage page %s: %w", sub.Name, err)
 			}
 			slog.Debug("generated subpackage page", "subpackage", sub.Name)
@@ -246,5 +340,72 @@ func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string
 		slog.Debug("generated sitemap.xml")
 	}
 
+	// Copy static assets
+	if len(cfg.Templates.Assets) > 0 {
+		if err := copyAssets(cfg.Templates.Assets, gc, cfg.Output.Dir); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// copyAssets copies static asset files and directories into the output directory.
+// Assets are copied preserving their relative path structure.
+func copyAssets(assets []string, gc *generateConfig, outputDir string) error {
+	for _, assetPath := range assets {
+		info, err := os.Stat(assetPath)
+		if err != nil {
+			return fmt.Errorf("asset %q: %w", assetPath, err)
+		}
+
+		if info.IsDir() {
+			if err := copyDir(assetPath, gc, outputDir); err != nil {
+				return fmt.Errorf("copying asset directory %q: %w", assetPath, err)
+			}
+		} else {
+			if err := copyFile(assetPath, assetPath, gc, outputDir); err != nil {
+				return fmt.Errorf("copying asset file %q: %w", assetPath, err)
+			}
+		}
+	}
+	return nil
+}
+
+// copyDir recursively copies a directory's contents into the output.
+func copyDir(dirPath string, gc *generateConfig, outputDir string) error {
+	return filepath.WalkDir(dirPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		return copyFile(path, path, gc, outputDir)
+	})
+}
+
+// copyFile reads a source file and writes it to the output via generateConfig.writer.
+func copyFile(srcPath, outputPath string, gc *generateConfig, outputDir string) error {
+	data, err := os.ReadFile(filepath.Clean(srcPath))
+	if err != nil {
+		return fmt.Errorf("reading %q: %w", srcPath, err)
+	}
+
+	w, err := gc.writer(outputDir, outputPath)
+	if err != nil {
+		return fmt.Errorf("creating output for %q: %w", outputPath, err)
+	}
+	defer func() {
+		if cerr := w.Close(); cerr != nil {
+			slog.Debug("failed to close asset file", "error", cerr, "file", outputPath)
+		}
+	}()
+
+	if _, err := w.Write(data); err != nil {
+		return fmt.Errorf("writing %q: %w", outputPath, err)
+	}
+
+	slog.Debug("copied asset", "path", outputPath)
 	return nil
 }

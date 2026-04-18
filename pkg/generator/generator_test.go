@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"bytes"
 	"flag"
 	"io/fs"
 	"os"
@@ -8,10 +9,13 @@ import (
 	"testing"
 	"testing/fstest"
 
+	html "html/template"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"go.treyburn.dev/vanity/pkg/config"
+	"go.treyburn.dev/vanity/pkg/tmpl"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -51,6 +55,7 @@ func TestNew(t *testing.T) {
 	gen, err := New()
 	require.NoError(t, err)
 	assert.NotNil(t, gen.moduleTmpl)
+	assert.NotNil(t, gen.submoduleTmpl)
 	assert.NotNil(t, gen.indexTmpl)
 	assert.NotNil(t, gen.notFoundTmpl)
 	assert.NotNil(t, gen.robotsTmpl)
@@ -274,6 +279,589 @@ func TestBuildModuleData_SubpackageImportPath(t *testing.T) {
 	assert.Equal(t, "foo/cmd/tool", sub.Name)
 	assert.Equal(t, "go.example.com/foo", sub.ImportPath, "subpackage go-import must point to module root")
 	assert.Equal(t, "https://pkg.go.dev/go.example.com/foo/cmd/tool", sub.Redirect)
+}
+
+func TestBlockFallback_DefaultBodyUsed(t *testing.T) {
+	// Without any user overrides, the default block content should be used.
+	// This is already covered by all the golden file tests, but let's
+	// explicitly verify the body contains expected default content.
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil, WithInMemory(memFS))
+	require.NoError(t, err)
+
+	// Module page should have the default redirect text
+	moduleContent, err := fs.ReadFile(memFS, "foo/index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(moduleContent), "Redirecting to")
+
+	// Index page should have the default module listing
+	indexContent, err := fs.ReadFile(memFS, "index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(indexContent), "<h1>go.example.com</h1>")
+
+	// 404 page should have the default "page not found" text
+	notFoundContent, err := fs.ReadFile(memFS, "404.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(notFoundContent), "Page not found")
+}
+
+func TestBlockFallback_HeadBlockEmpty(t *testing.T) {
+	// The default head block should produce no extra content in <head>
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil, WithInMemory(memFS))
+	require.NoError(t, err)
+
+	// The module page head should not have any extra content beyond
+	// the go-import/go-source/refresh meta tags
+	moduleContent, err := fs.ReadFile(memFS, "foo/index.html")
+	require.NoError(t, err)
+	content := string(moduleContent)
+
+	// Head block is empty by default — verify no extra blank lines or content
+	// between the last meta tag and </head>
+	assert.Contains(t, content, `<meta http-equiv="refresh"`)
+	assert.Contains(t, content, `</head>`)
+}
+
+func TestSubmoduleTemplate_UsedForSubpackages(t *testing.T) {
+	// Verify that subpackage pages are rendered with the submodule template
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	subpackages := map[string][]string{
+		"foo": {"cmd/tool"},
+	}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, subpackages, WithInMemory(memFS))
+	require.NoError(t, err)
+
+	// Both module and submodule pages should exist and contain redirect content
+	moduleContent, err := fs.ReadFile(memFS, "foo/index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(moduleContent), "Redirecting to")
+
+	subContent, err := fs.ReadFile(memFS, "foo/cmd/tool/index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(subContent), "Redirecting to")
+}
+
+// --- applyUserPartials tests ---
+
+func baseTemplate(t *testing.T) *html.Template {
+	t.Helper()
+	tmpl, err := html.New("test").Funcs(tmpl.FuncMap).Parse(
+		`<head>{{block "head" .}}{{end}}</head><body>{{block "body" .}}default{{end}}</body>`)
+	require.NoError(t, err)
+	return tmpl
+}
+
+func writeFixture(t *testing.T, dir, name, content string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+	return path
+}
+
+func TestApplyUserPartials_NoOverrides(t *testing.T) {
+	base := baseTemplate(t)
+	result, err := applyUserPartials(base, "", nil)
+	require.NoError(t, err)
+	// Should return the same pointer — no clone needed
+	assert.Equal(t, base, result)
+}
+
+func TestApplyUserPartials_BodyOverride(t *testing.T) {
+	dir := t.TempDir()
+	partial := writeFixture(t, dir, "body.html", `{{define "body"}}custom body{{end}}`)
+
+	base := baseTemplate(t)
+	result, err := applyUserPartials(base, partial, nil)
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	require.NoError(t, result.Execute(&buf, nil))
+	assert.Contains(t, buf.String(), "custom body")
+	assert.NotContains(t, buf.String(), "default")
+}
+
+func TestApplyUserPartials_HeadOverride(t *testing.T) {
+	dir := t.TempDir()
+	partial := writeFixture(t, dir, "head.html", `{{define "head"}}<link rel="stylesheet" href="/css/style.css">{{end}}`)
+
+	base := baseTemplate(t)
+	result, err := applyUserPartials(base, partial, nil)
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	require.NoError(t, result.Execute(&buf, nil))
+	assert.Contains(t, buf.String(), `<link rel="stylesheet"`)
+	// Body should still be the default
+	assert.Contains(t, buf.String(), "default")
+}
+
+func TestApplyUserPartials_CompositionOnly(t *testing.T) {
+	dir := t.TempDir()
+	headerPartial := writeFixture(t, dir, "header.html", `{{define "header"}}<nav>header</nav>{{end}}`)
+	bodyPartial := writeFixture(t, dir, "body.html", `{{define "body"}}{{template "header" .}}main{{end}}`)
+
+	base := baseTemplate(t)
+	result, err := applyUserPartials(base, bodyPartial, []string{headerPartial})
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	require.NoError(t, result.Execute(&buf, nil))
+	assert.Contains(t, buf.String(), "<nav>header</nav>")
+	assert.Contains(t, buf.String(), "main")
+}
+
+func TestApplyUserPartials_DoesNotMutateBase(t *testing.T) {
+	dir := t.TempDir()
+	partial := writeFixture(t, dir, "body.html", `{{define "body"}}overridden{{end}}`)
+
+	base := baseTemplate(t)
+
+	// Apply override
+	_, err := applyUserPartials(base, partial, nil)
+	require.NoError(t, err)
+
+	// Original base should still render the default
+	var buf bytes.Buffer
+	require.NoError(t, base.Execute(&buf, nil))
+	assert.Contains(t, buf.String(), "default")
+	assert.NotContains(t, buf.String(), "overridden")
+}
+
+func TestApplyUserPartials_FileNotFound(t *testing.T) {
+	base := baseTemplate(t)
+	_, err := applyUserPartials(base, "/nonexistent/body.html", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reading template")
+}
+
+func TestApplyUserPartials_InvalidSyntax(t *testing.T) {
+	dir := t.TempDir()
+	partial := writeFixture(t, dir, "bad.html", `{{define "body"}}`)
+
+	base := baseTemplate(t)
+	_, err := applyUserPartials(base, partial, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "parsing template")
+}
+
+func TestApplyUserPartials_CompositionPartialNotFound(t *testing.T) {
+	base := baseTemplate(t)
+	_, err := applyUserPartials(base, "", []string{"/nonexistent/header.html"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reading partial")
+}
+
+// --- WithTemplates tests ---
+
+func testGenerator(t *testing.T) *Generator {
+	t.Helper()
+	base := baseTemplate(t)
+	// Clone for each field so they're independent
+	module, err := base.Clone()
+	require.NoError(t, err)
+	submodule, err := base.Clone()
+	require.NoError(t, err)
+	index, err := base.Clone()
+	require.NoError(t, err)
+	notFound, err := base.Clone()
+	require.NoError(t, err)
+	return &Generator{
+		moduleTmpl:    module,
+		submoduleTmpl: submodule,
+		indexTmpl:     index,
+		notFoundTmpl:  notFound,
+	}
+}
+
+func TestWithTemplates_NoTemplates(t *testing.T) {
+	gen := testGenerator(t)
+	opt := WithTemplates(config.TemplatesConfig{})
+	require.NoError(t, opt(gen))
+}
+
+func TestWithTemplates_InvalidPath(t *testing.T) {
+	gen := testGenerator(t)
+	opt := WithTemplates(config.TemplatesConfig{
+		Module: "/nonexistent/module.html",
+	})
+	err := opt(gen)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "applying user module template")
+}
+
+func TestWithTemplates_InvalidSubmodulePath(t *testing.T) {
+	gen := testGenerator(t)
+	opt := WithTemplates(config.TemplatesConfig{
+		Submodule: "/nonexistent/submodule.html",
+	})
+	err := opt(gen)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "applying user submodule template")
+}
+
+func TestWithTemplates_InvalidIndexPath(t *testing.T) {
+	gen := testGenerator(t)
+	opt := WithTemplates(config.TemplatesConfig{
+		Index: "/nonexistent/index.html",
+	})
+	err := opt(gen)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "applying user index template")
+}
+
+func TestWithTemplates_InvalidNotFoundPath(t *testing.T) {
+	gen := testGenerator(t)
+	opt := WithTemplates(config.TemplatesConfig{
+		NotFound: "/nonexistent/404.html",
+	})
+	err := opt(gen)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "applying user not_found template")
+}
+
+func TestWithTemplates_SubmoduleFallback(t *testing.T) {
+	dir := t.TempDir()
+	modulePartial := writeFixture(t, dir, "module.html", `{{define "body"}}module-style{{end}}`)
+
+	gen := testGenerator(t)
+	opt := WithTemplates(config.TemplatesConfig{
+		Module: modulePartial,
+		// Submodule not set — should fall back to Module
+	})
+	require.NoError(t, opt(gen))
+
+	var buf bytes.Buffer
+	require.NoError(t, gen.submoduleTmpl.Execute(&buf, nil))
+	assert.Contains(t, buf.String(), "module-style")
+}
+
+func TestWithTemplates_AppliesOverrides(t *testing.T) {
+	dir := t.TempDir()
+	modulePartial := writeFixture(t, dir, "module.html", `{{define "body"}}custom-module{{end}}`)
+	indexPartial := writeFixture(t, dir, "index.html", `{{define "body"}}custom-index{{end}}`)
+	notFoundPartial := writeFixture(t, dir, "404.html", `{{define "body"}}custom-404{{end}}`)
+
+	gen := testGenerator(t)
+	opt := WithTemplates(config.TemplatesConfig{
+		Module:   modulePartial,
+		Index:    indexPartial,
+		NotFound: notFoundPartial,
+	})
+	require.NoError(t, opt(gen))
+
+	for _, tc := range []struct {
+		name     string
+		tmpl     *html.Template
+		expected string
+	}{
+		{"module", gen.moduleTmpl, "custom-module"},
+		{"index", gen.indexTmpl, "custom-index"},
+		{"not_found", gen.notFoundTmpl, "custom-404"},
+		{"submodule fallback", gen.submoduleTmpl, "custom-module"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			require.NoError(t, tc.tmpl.Execute(&buf, nil))
+			assert.Contains(t, buf.String(), tc.expected)
+		})
+	}
+}
+
+// --- Custom template tests ---
+
+func fixturesDir() string {
+	return filepath.Join("testdata", "custom_templates", "fixtures")
+}
+
+func TestGenerate_CustomModuleBody(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_body.html"),
+	}
+
+	gen, err := New(WithTemplates(tmplCfg))
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/custom_module_body.html")
+}
+
+func TestGenerate_CustomHeadAndBody(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_head_and_body.html"),
+	}
+
+	gen, err := New(WithTemplates(tmplCfg))
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/custom_head_and_body.html")
+}
+
+func TestGenerate_CustomIndex(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Index: filepath.Join(fixturesDir(), "index_body.html"),
+	}
+
+	gen, err := New(WithTemplates(tmplCfg))
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "index.html"), "custom_templates/custom_index.html")
+}
+
+func TestGenerate_SubmoduleFallbackToModule(t *testing.T) {
+	// When only module template is specified, submodules should use it too
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_body.html"),
+	}
+
+	subpackages := map[string][]string{
+		"foo": {"cmd/tool"},
+	}
+
+	gen, err := New(WithTemplates(tmplCfg))
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, subpackages)
+	require.NoError(t, err)
+
+	// Submodule page should use the module template's body override
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "cmd", "tool", "index.html"), "custom_templates/submodule_fallback.html")
+}
+
+func TestGenerate_SeparateSubmoduleTemplate(t *testing.T) {
+	// When both module and submodule templates are specified, each uses its own
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module:    filepath.Join(fixturesDir(), "module_body.html"),
+		Submodule: filepath.Join(fixturesDir(), "submodule_body.html"),
+	}
+
+	subpackages := map[string][]string{
+		"foo": {"cmd/tool"},
+	}
+
+	gen, err := New(WithTemplates(tmplCfg))
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, subpackages)
+	require.NoError(t, err)
+
+	// Module uses module template
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/custom_module_body.html")
+	// Submodule uses its own template
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "cmd", "tool", "index.html"), "custom_templates/separate_submodule.html")
+}
+
+func TestGenerate_CompositionPartials(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_with_composition.html"),
+		Partials: []string{
+			filepath.Join(fixturesDir(), "header.html"),
+			filepath.Join(fixturesDir(), "footer.html"),
+		},
+	}
+
+	gen, err := New(WithTemplates(tmplCfg))
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/composition.html")
+}
+
+func TestGenerate_CustomTemplateDoesNotAffectDefaults(t *testing.T) {
+	// Specifying a module template should not affect index/404/robots/sitemap defaults
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_body.html"),
+	}
+
+	gen, err := New(WithTemplates(tmplCfg))
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	// These should match the original golden files (unchanged defaults)
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "index.html"), "single_module/index.html")
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "404.html"), "single_module/404.html")
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "robots.txt"), "single_module/robots.txt")
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "sitemap.xml"), "single_module/sitemap.xml")
+}
+
+// --- Asset copying tests ---
+
+func TestGenerate_CopiesAssetFile(t *testing.T) {
+	dir := t.TempDir()
+	cssFile := filepath.Join(dir, "style.css")
+	require.NoError(t, os.WriteFile(cssFile, []byte("body { color: red; }"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+	cfg.Templates.Assets = []string{cssFile}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil))
+
+	// Asset should be copied preserving its path
+	actual, err := os.ReadFile(filepath.Join(cfg.Output.Dir, cssFile))
+	require.NoError(t, err)
+	assert.Equal(t, "body { color: red; }", string(actual))
+}
+
+func TestGenerate_CopiesAssetDirectory(t *testing.T) {
+	dir := t.TempDir()
+	cssDir := filepath.Join(dir, "css")
+	require.NoError(t, os.MkdirAll(cssDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "main.css"), []byte("h1{}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "reset.css"), []byte("*{}"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+	cfg.Templates.Assets = []string{cssDir}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil))
+
+	mainCSS, err := os.ReadFile(filepath.Join(cfg.Output.Dir, cssDir, "main.css"))
+	require.NoError(t, err)
+	assert.Equal(t, "h1{}", string(mainCSS))
+
+	resetCSS, err := os.ReadFile(filepath.Join(cfg.Output.Dir, cssDir, "reset.css"))
+	require.NoError(t, err)
+	assert.Equal(t, "*{}", string(resetCSS))
+}
+
+func TestGenerate_CopiesAssetsInMemory(t *testing.T) {
+	dir := t.TempDir()
+	jsFile := filepath.Join(dir, "app.js")
+	require.NoError(t, os.WriteFile(jsFile, []byte("console.log('hi')"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Templates.Assets = []string{jsFile}
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil, WithInMemory(memFS)))
+
+	// In memory mode, assets are stored by their path as-is
+	entry, ok := memFS[jsFile]
+	require.True(t, ok, "asset should exist in memFS at key %q", jsFile)
+	assert.Equal(t, "console.log('hi')", string(entry.Data))
+}
+
+func TestGenerate_AssetWithNestedDirs(t *testing.T) {
+	dir := t.TempDir()
+	nestedDir := filepath.Join(dir, "static", "img", "icons")
+	require.NoError(t, os.MkdirAll(nestedDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(nestedDir, "logo.svg"), []byte("<svg/>"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+	cfg.Templates.Assets = []string{filepath.Join(dir, "static")}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil))
+
+	logo, err := os.ReadFile(filepath.Join(cfg.Output.Dir, dir, "static", "img", "icons", "logo.svg"))
+	require.NoError(t, err)
+	assert.Equal(t, "<svg/>", string(logo))
+}
+
+func TestGenerate_NoAssetsNoop(t *testing.T) {
+	// No assets configured — should work fine (regression guard)
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil, WithInMemory(memFS)))
+	// Only generated files, no extra entries
+	assert.Len(t, memFS, 5) // foo/index.html, index.html, 404.html, robots.txt, sitemap.xml
+}
+
+func TestGenerate_MixedFileAndDirAssets(t *testing.T) {
+	dir := t.TempDir()
+
+	// A standalone file
+	standaloneFile := filepath.Join(dir, "favicon.ico")
+	require.NoError(t, os.WriteFile(standaloneFile, []byte("icon"), 0o644))
+
+	// A directory with files
+	cssDir := filepath.Join(dir, "css")
+	require.NoError(t, os.MkdirAll(cssDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "style.css"), []byte("body{}"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Templates.Assets = []string{standaloneFile, cssDir}
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil, WithInMemory(memFS)))
+
+	// Both should be in the memFS
+	faviconEntry, ok := memFS[standaloneFile]
+	require.True(t, ok, "favicon should exist in memFS")
+	assert.Equal(t, "icon", string(faviconEntry.Data))
+
+	cssEntry, ok := memFS[filepath.Join(cssDir, "style.css")]
+	require.True(t, ok, "style.css should exist in memFS")
+	assert.Equal(t, "body{}", string(cssEntry.Data))
 }
 
 // assertGoldenFile compares the content of actualPath against a golden file in testdata/.

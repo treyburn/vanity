@@ -1,0 +1,14 @@
+domain: go.treyburn.dev
+modules:
+  - name: vanity
+    repo: https://github.com/treyburn/vanity
+  - name: ordered
+    repo: https://github.com/treyburn/ordered
+
+templates:
+  index: templates/index.html
+  partials:
+    - templates/header.html
+    - templates/footer.html
+  assets:
+    - css/

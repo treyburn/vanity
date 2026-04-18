@@ -34,5 +34,11 @@ go.work.sum
 # don't include .vanity.yml
 .vanity.yml
 
+# but do include the one in our example
+!/examples/custom-templates/.vanity.yml
+
 # don't include the generated files
 dist
+
+# don't include claude writeups
+/.prompts

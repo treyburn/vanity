@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -334,6 +335,95 @@ func TestExampleConfig(t *testing.T) {
 	require.Len(t, cfg.Modules, 1)
 	assert.Equal(t, "my-module", cfg.Modules[0].Name)
 	assert.Equal(t, "https://github.com/example/my-module", cfg.Modules[0].Repo)
+
+	// Templates should be populated in example config
+	assert.Equal(t, "templates/index.html", cfg.Templates.Index)
+	assert.Equal(t, "templates/module.html", cfg.Templates.Module)
+	assert.Equal(t, "templates/submodule.html", cfg.Templates.Submodule)
+	assert.Equal(t, "templates/404.html", cfg.Templates.NotFound)
+	assert.Equal(t, []string{"templates/header.html", "templates/footer.html"}, cfg.Templates.Partials)
+	assert.Equal(t, []string{"static/css/", "static/js/"}, cfg.Templates.Assets)
+}
+
+func TestLoad_WithTemplates(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create template files so validation passes
+	for _, name := range []string{"index.html", "module.html"} {
+		path := filepath.Join(dir, name)
+		err := os.WriteFile(path, []byte(`{{define "body"}}hello{{end}}`), 0o644)
+		require.NoError(t, err)
+	}
+
+	yaml := fmt.Sprintf(`
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
+templates:
+  index: %s/index.html
+  module: %s/module.html
+`, dir, dir)
+
+	cfg := loadFromString(t, yaml)
+
+	assert.Equal(t, filepath.Join(dir, "index.html"), cfg.Templates.Index)
+	assert.Equal(t, filepath.Join(dir, "module.html"), cfg.Templates.Module)
+	assert.Empty(t, cfg.Templates.Submodule)
+	assert.Empty(t, cfg.Templates.NotFound)
+	assert.Empty(t, cfg.Templates.Partials)
+	assert.Empty(t, cfg.Templates.Assets)
+}
+
+func TestLoad_NoTemplates(t *testing.T) {
+	yaml := `
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
+`
+	cfg := loadFromString(t, yaml)
+	assert.Empty(t, cfg.Templates.Index)
+	assert.Empty(t, cfg.Templates.Module)
+	assert.False(t, cfg.Templates.HasCustomTemplates())
+}
+
+func TestTemplatesConfig_HasCustomTemplates(t *testing.T) {
+	tests := []struct {
+		name   string
+		cfg    TemplatesConfig
+		expect bool
+	}{
+		{"empty", TemplatesConfig{}, false},
+		{"index only", TemplatesConfig{Index: "t/index.html"}, true},
+		{"module only", TemplatesConfig{Module: "t/module.html"}, true},
+		{"submodule only", TemplatesConfig{Submodule: "t/sub.html"}, true},
+		{"not_found only", TemplatesConfig{NotFound: "t/404.html"}, true},
+		{"partials only", TemplatesConfig{Partials: []string{"t/header.html"}}, true},
+		{"assets only", TemplatesConfig{Assets: []string{"css/"}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expect, tt.cfg.HasCustomTemplates())
+		})
+	}
+}
+
+func TestTemplatesConfig_AllTemplatePaths(t *testing.T) {
+	cfg := TemplatesConfig{
+		Index:     "t/index.html",
+		Module:    "t/module.html",
+		Submodule: "t/submodule.html",
+		NotFound:  "t/404.html",
+		Partials:  []string{"t/header.html", "t/footer.html"},
+	}
+	paths := cfg.AllTemplatePaths()
+	assert.Equal(t, []string{"t/index.html", "t/module.html", "t/submodule.html", "t/404.html", "t/header.html", "t/footer.html"}, paths)
+}
+
+func TestTemplatesConfig_AllTemplatePaths_Empty(t *testing.T) {
+	cfg := TemplatesConfig{}
+	assert.Empty(t, cfg.AllTemplatePaths())
 }
 
 func TestNewLogger_TextFormat(t *testing.T) {

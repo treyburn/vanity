@@ -23,7 +23,7 @@ Owning your Go module namespace makes you sovereign over your code. This sets yo
 ### Simplicity
 Vanity generates plain-Jane static HTML pages. No servers, no databases, no runtime dependencies, no BS. Point to your domain, push your pages, and you're done.
 
-Vanity makes decisions so you don't have to. With built-in templates, most users won't need to configure anything beyond their domain and list of modules.
+Vanity makes decisions so you don't have to. With built-in templates, most users won't need to configure anything beyond their domain and list of modules, but you can customize this further if you [bring your own templates](#custom-templates).
 
 ---
 
@@ -190,4 +190,133 @@ modules:
         - testdata
       paths: # Allow-list exact subpackage paths (explicit mode only)
         - sub/pkg
+# Custom templates and static assets (all paths relative to .vanity.yml)
+templates:
+  index: templates/index.html # Custom body partial for the root index page
+  module: templates/module.html # Custom body partial for module pages
+  submodule: templates/submodule.html # Custom body partial for submodule pages (falls back to module)
+  not_found: templates/404.html # Custom body partial for the 404 page
+  partials: # Reusable template components (referenced via {{template "name" .}})
+    - templates/header.html
+    - templates/footer.html
+  assets: # Static files/dirs copied verbatim into the output directory
+    - css/
+    - js/app.js
 ```
+
+---
+
+## Custom Templates
+
+Vanity generates minimally functional redirect pages by default, but you can customize the look and feel by providing your own HTML template partials. Templates are entirely optional.
+
+### How It Works
+
+Vanity owns the `<head>` section of each page (the `go-import` and `go-source` meta tags are critical for `go get` to work). Your templates can optionally define additional attributes to `<head>` via `{{define "head"}}` as well as the `<body>` via `{{define "body"}}` blocks that extend the built-in base templates:
+
+```html
+<!--example.html-->
+{{/* templates/module.html */}}
+{{define "head"}}
+<link rel="stylesheet" href="/css/style.css">
+{{end}}
+
+{{define "body"}}
+<div class="module-page">
+  <h1>{{upper .Name}}</h1>
+  <p>Redirecting to <a href="{{.Redirect}}">documentation</a>...</p>
+</div>
+{{end}}
+```
+
+The `"head"` block is injected after Vanity's required meta tags. The `"body"` block replaces the default body content. Both are optional, and you can omit either one n your template to keep the default behavior.
+
+### Template Data
+
+#### `ModuleData` -- passed to module and submodule templates
+
+| Field | Type | Description |
+|---|---|---|
+| `.Domain` | `string` | The configured domain (e.g. `go.treyburn.dev`) |
+| `.Name` | `string` | Module name / import suffix (e.g. `vanity` or `vanity/pkg/cmd`) |
+| `.ImportPath` | `string` | Full import path (e.g. `go.treyburn.dev/vanity`) |
+| `.Repo` | `string` | Git repository URL |
+| `.Branch` | `string` | Git branch |
+| `.GoSource` | `bool` | Whether go-source meta tag is enabled |
+| `.Redirect` | `string` | Redirect URL for documentation |
+| `.Subpackages` | `[]ModuleData` | Child subpackage data (only on parent module pages) |
+
+#### `SiteData` -- passed to index and not_found templates
+
+| Field | Type | Description |
+|---|---|---|
+| `.Domain` | `string` | The configured domain |
+| `.Modules` | `[]ModuleData` | All modules with their subpackages |
+
+### Template Functions
+
+The following functions are available in all templates:
+
+| Function | Signature | Description              | Example |
+|---|---|--------------------------|---|
+| `upper` | `string -> string` | Uppercase                | `{{upper .Name}}` |
+| `lower` | `string -> string` | Lowercase                | `{{lower .Domain}}` |
+| `title` | `string -> string` | Title case (English)     | `{{title .Name}}` |
+| `join` | `[]string, string -> string` | Join with separator      | `{{join .List ", "}}` |
+| `sprintf` | `string, ...any -> string` | Formatted string         | `{{sprintf "%s/%s" .Domain .Name}}` |
+| `now` | `-> time.Time` | Current datetime in UTC  | `{{now.Format "2006-01-02"}}` |
+| `year` | `-> int` | Current year             | `&copy; {{year}}` |
+| `contains` | `string, string -> bool` | Substring check          | `{{if contains .Name "api"}}` |
+| `hasPrefix` | `string, string -> bool` | Prefix check             | `{{if hasPrefix .Name "pkg"}}` |
+| `hasSuffix` | `string, string -> bool` | Suffix check             | `{{if hasSuffix .Repo ".git"}}` |
+| `replace` | `string, string, string -> string` | Replace all occurrences  | `{{replace .Name "-" "_"}}` |
+| `trimSpace` | `string -> string` | Trim whitespace          | `{{trimSpace .Name}}` |
+
+`now` returns a `time.Time` value, so you can call any method on it -- `.Year`, `.Month`, `.Format`, etc. Go uses a reference-time-based format system (not `YYYY-MM-DD`). See the [Go time package docs](https://pkg.go.dev/time#pkg-constants) for format strings.
+
+Common patterns:
+- `{{now.Format "2006-01-02"}}` -- ISO date (`2026-04-18`)
+- `{{now.Format "Jan 2, 2006"}}` -- human-friendly (`Apr 18, 2026`)
+- `{{now.Format "January 2006"}}` -- month and year (`April 2026`)
+
+### Template Composition
+
+You can define reusable components in files listed under `templates.partials` and reference them via `{{template "name" .}}`:
+
+```html
+{{/* templates/header.html */}}
+{{define "header"}}
+    <nav>
+        <a href="/">{{.Domain}}</a>
+    </nav>
+{{end}}
+```
+
+```html
+{{/* templates/module.html */}}
+{{define "body"}}
+  {{template "header" .}}
+  <main>
+      <h1>{{.Name}}</h1>
+  </main>
+  {{template "footer" .}}
+{{end}}
+```
+
+### Static Assets
+
+Files and directories listed under `templates.assets` are copied verbatim into the output directory, preserving their relative path structure. No processing or minification is performed.
+
+```yaml
+templates:
+  assets:
+    - css/          # css/style.css -> dist/css/style.css
+    - js/app.js     # js/app.js -> dist/js/app.js
+```
+
+### Validation
+
+The `vanity check` command validates custom templates when configured:
+- Verifies all referenced template and asset files exist.
+- Parses templates to catch syntax errors.
+- Detects collisions between assets and generated output files.

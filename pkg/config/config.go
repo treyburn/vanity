@@ -45,11 +45,12 @@ const (
 
 // Config is the top-level vanity configuration.
 type Config struct {
-	Log      LogConfig      `yaml:"log,omitempty"`
-	Output   OutputConfig   `yaml:"output,omitempty"`
-	Domain   string         `yaml:"domain"`
-	Defaults DefaultsConfig `yaml:"defaults,omitempty"`
-	Modules  []Module       `yaml:"modules"`
+	Log       LogConfig       `yaml:"log,omitempty"`
+	Output    OutputConfig    `yaml:"output,omitempty"`
+	Domain    string          `yaml:"domain"`
+	Defaults  DefaultsConfig  `yaml:"defaults,omitempty"`
+	Modules   []Module        `yaml:"modules"`
+	Templates TemplatesConfig `yaml:"templates,omitempty"`
 }
 
 // LogConfig controls logging behavior.
@@ -131,6 +132,40 @@ type SubpackageConfig struct {
 	Paths   []string       `yaml:"paths,omitempty"`
 }
 
+// TemplatesConfig controls user-provided template partials and static assets.
+type TemplatesConfig struct {
+	Index     string   `yaml:"index,omitempty"`
+	Module    string   `yaml:"module,omitempty"`
+	Submodule string   `yaml:"submodule,omitempty"`
+	NotFound  string   `yaml:"not_found,omitempty"`
+	Partials  []string `yaml:"partials,omitempty"`
+	Assets    []string `yaml:"assets,omitempty"`
+}
+
+// HasCustomTemplates reports whether any user template partials are configured.
+func (t TemplatesConfig) HasCustomTemplates() bool {
+	return t.Index != "" || t.Module != "" || t.Submodule != "" || t.NotFound != "" || len(t.Partials) > 0
+}
+
+// AllTemplatePaths returns all configured template file paths (non-empty ones).
+func (t TemplatesConfig) AllTemplatePaths() []string {
+	var paths []string
+	if t.Index != "" {
+		paths = append(paths, t.Index)
+	}
+	if t.Module != "" {
+		paths = append(paths, t.Module)
+	}
+	if t.Submodule != "" {
+		paths = append(paths, t.Submodule)
+	}
+	if t.NotFound != "" {
+		paths = append(paths, t.NotFound)
+	}
+	paths = append(paths, t.Partials...)
+	return paths
+}
+
 // DefaultConfig returns a Config with all default values populated.
 // Domain and Modules are left empty — they must come from the YAML file.
 // Used by: config loading (unmarshal into defaults).
@@ -175,6 +210,14 @@ func MinimalConfig() *Config {
 func ExampleConfig() *Config {
 	cfg := DefaultConfig()
 	cfg.Domain = "example.com"
+	cfg.Templates = TemplatesConfig{
+		Index:     "templates/index.html",
+		Module:    "templates/module.html",
+		Submodule: "templates/submodule.html",
+		NotFound:  "templates/404.html",
+		Partials:  []string{"templates/header.html", "templates/footer.html"},
+		Assets:    []string{"static/css/", "static/js/"},
+	}
 	cfg.Modules = []Module{
 		{
 			Name:      "my-module",

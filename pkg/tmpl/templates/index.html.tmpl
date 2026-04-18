@@ -3,13 +3,16 @@
 <head>
   <meta charset="utf-8">
   <title>{{.Domain}} — Go Modules</title>
+{{- block "head" .}}{{end}}
 </head>
 <body>
+{{- block "body" .}}
   <h1>{{.Domain}}</h1>
   <ul>
 {{- range .Modules}}
     <li><a href="/{{.Name}}">{{.ImportPath}}</a></li>
 {{- end}}
   </ul>
+{{- end}}
 </body>
 </html>
