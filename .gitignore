@@ -36,3 +36,6 @@ go.work.sum
 
 # don't include the generated files
 dist
+
+# don't include claude writeups
+/.prompts
