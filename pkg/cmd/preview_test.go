@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -54,6 +56,61 @@ modules:
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Contains(t, string(body), `content="go.example.com/foo git https://github.com/example/foo"`)
+
+	cancel()
+	assert.NoError(t, <-errCh)
+}
+
+func TestPreviewCmd_WithCustomTemplates(t *testing.T) {
+	// Create template fixture
+	tmplDir := t.TempDir()
+	indexTmpl := filepath.Join(tmplDir, "index.html")
+	require.NoError(t, os.WriteFile(indexTmpl, []byte(`{{define "body"}}<div class="custom-index">{{.Domain}}</div>{{end}}`), 0o644))
+
+	cfg := writeAndLoadConfig(t, `
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
+    subpackages:
+      mode: off
+templates:
+  index: `+indexTmpl+`
+`)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cmd := &PreviewCmd{Port: 8081, Quiet: true}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- cmd.Run(ctx, cfg)
+	}()
+
+	// Wait for server to be ready
+	require.Eventually(t, func() bool {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8081/", nil)
+		require.NoError(t, err)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return false
+		}
+		assert.NoError(t, resp.Body.Close())
+		return resp.StatusCode == http.StatusOK
+	}, 2*time.Second, 25*time.Millisecond)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8081/", nil)
+	require.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { assert.NoError(t, resp.Body.Close()) }()
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, string(body), `<div class="custom-index">go.example.com</div>`)
 
 	cancel()
 	assert.NoError(t, <-errCh)

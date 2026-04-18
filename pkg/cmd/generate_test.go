@@ -224,6 +224,56 @@ modules:
 	assert.NoFileExists(t, filepath.Join(outputDir, "foo", "internal", "secret", "index.html"))
 }
 
+func TestGenerateCmd_WithCustomTemplates(t *testing.T) {
+	// Create template fixtures
+	tmplDir := t.TempDir()
+	moduleTmpl := filepath.Join(tmplDir, "module.html")
+	require.NoError(t, os.WriteFile(moduleTmpl, []byte(`{{define "body"}}<div class="custom">{{.Name}}</div>{{end}}`), 0o644))
+
+	headerTmpl := filepath.Join(tmplDir, "header.html")
+	require.NoError(t, os.WriteFile(headerTmpl, []byte(`{{define "header"}}<nav>{{.Domain}}</nav>{{end}}`), 0o644))
+
+	// Create CSS asset
+	cssDir := filepath.Join(tmplDir, "css")
+	require.NoError(t, os.MkdirAll(cssDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "style.css"), []byte("body{}"), 0o644))
+
+	outputDir := filepath.Join(t.TempDir(), "dist")
+	cfg := writeAndLoadConfig(t, `
+domain: go.example.com
+modules:
+  - name: foo
+    repo: https://github.com/example/foo
+    subpackages:
+      mode: off
+templates:
+  module: `+moduleTmpl+`
+  partials:
+    - `+headerTmpl+`
+  assets:
+    - `+cssDir+`
+`)
+	cfg.Output.Dir = outputDir
+
+	cmd := &GenerateCmd{}
+	err := cmd.Run(context.Background(), cfg)
+	require.NoError(t, err)
+
+	// Module page should have custom body
+	content, err := os.ReadFile(filepath.Join(outputDir, "foo", "index.html"))
+	require.NoError(t, err)
+	assert.Contains(t, string(content), `<div class="custom">foo</div>`)
+	// go-import meta tag should still be present (vanity owns the head)
+	assert.Contains(t, string(content), `go-import`)
+
+	// Asset should be copied
+	assert.FileExists(t, filepath.Join(outputDir, cssDir, "style.css"))
+
+	// Default pages should still be generated
+	assert.FileExists(t, filepath.Join(outputDir, "index.html"))
+	assert.FileExists(t, filepath.Join(outputDir, "404.html"))
+}
+
 func TestDiscoverSubpackages_NoSubpackages(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Domain = "go.example.com"
