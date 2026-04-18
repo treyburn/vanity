@@ -490,6 +490,21 @@ func TestValidateAssetCollisions_CollidesWithModuleName(t *testing.T) {
 	assert.Contains(t, err.Error(), "collide")
 }
 
+func TestValidateAssetCollisions_DirCollidesWithModuleName(t *testing.T) {
+	dir := t.TempDir()
+	// Create a directory named same as a module
+	fooDir := filepath.Join(dir, "foo")
+	require.NoError(t, os.MkdirAll(fooDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(fooDir, "data.json"), []byte("{}"), 0o644))
+
+	cfg := validConfig()
+	cfg.Templates.Assets = []string{fooDir}
+
+	err := validateAssetCollisions(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "collide")
+}
+
 // assertIsValidationErr verifies that the error tree contains a ValidationError.
 func assertIsValidationErr(t *testing.T, err error) {
 	t.Helper()
