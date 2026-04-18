@@ -175,7 +175,7 @@ func buildModuleData(cfg *config.Config, subpackages map[string][]string) []Modu
 	return modules
 }
 
-// Generate renders all pages from the config. By default it writes to disk
+// Generate renders all pages from the config. By default, it writes to disk
 // using cfg.Output.Dir. Use WithInMemory to write to an in-memory filesystem instead.
 func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string, opts ...Option) error {
 	gc := &generateConfig{}
