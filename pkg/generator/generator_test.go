@@ -743,6 +743,137 @@ func TestGenerate_CustomTemplateDoesNotAffectDefaults(t *testing.T) {
 	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "sitemap.xml"), "single_module/sitemap.xml")
 }
 
+// --- Asset copying tests ---
+
+func TestGenerate_CopiesAssetFile(t *testing.T) {
+	dir := t.TempDir()
+	cssFile := filepath.Join(dir, "style.css")
+	require.NoError(t, os.WriteFile(cssFile, []byte("body { color: red; }"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+	cfg.Templates.Assets = []string{cssFile}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil))
+
+	// Asset should be copied preserving its path
+	actual, err := os.ReadFile(filepath.Join(cfg.Output.Dir, cssFile))
+	require.NoError(t, err)
+	assert.Equal(t, "body { color: red; }", string(actual))
+}
+
+func TestGenerate_CopiesAssetDirectory(t *testing.T) {
+	dir := t.TempDir()
+	cssDir := filepath.Join(dir, "css")
+	require.NoError(t, os.MkdirAll(cssDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "main.css"), []byte("h1{}"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "reset.css"), []byte("*{}"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+	cfg.Templates.Assets = []string{cssDir}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil))
+
+	mainCSS, err := os.ReadFile(filepath.Join(cfg.Output.Dir, cssDir, "main.css"))
+	require.NoError(t, err)
+	assert.Equal(t, "h1{}", string(mainCSS))
+
+	resetCSS, err := os.ReadFile(filepath.Join(cfg.Output.Dir, cssDir, "reset.css"))
+	require.NoError(t, err)
+	assert.Equal(t, "*{}", string(resetCSS))
+}
+
+func TestGenerate_CopiesAssetsInMemory(t *testing.T) {
+	dir := t.TempDir()
+	jsFile := filepath.Join(dir, "app.js")
+	require.NoError(t, os.WriteFile(jsFile, []byte("console.log('hi')"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Templates.Assets = []string{jsFile}
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil, WithInMemory(memFS)))
+
+	// In memory mode, assets are stored by their path as-is
+	entry, ok := memFS[jsFile]
+	require.True(t, ok, "asset should exist in memFS at key %q", jsFile)
+	assert.Equal(t, "console.log('hi')", string(entry.Data))
+}
+
+func TestGenerate_AssetWithNestedDirs(t *testing.T) {
+	dir := t.TempDir()
+	nestedDir := filepath.Join(dir, "static", "img", "icons")
+	require.NoError(t, os.MkdirAll(nestedDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(nestedDir, "logo.svg"), []byte("<svg/>"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+	cfg.Templates.Assets = []string{filepath.Join(dir, "static")}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil))
+
+	logo, err := os.ReadFile(filepath.Join(cfg.Output.Dir, dir, "static", "img", "icons", "logo.svg"))
+	require.NoError(t, err)
+	assert.Equal(t, "<svg/>", string(logo))
+}
+
+func TestGenerate_NoAssetsNoop(t *testing.T) {
+	// No assets configured — should work fine (regression guard)
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil, WithInMemory(memFS)))
+	// Only generated files, no extra entries
+	assert.Len(t, memFS, 5) // foo/index.html, index.html, 404.html, robots.txt, sitemap.xml
+}
+
+func TestGenerate_MixedFileAndDirAssets(t *testing.T) {
+	dir := t.TempDir()
+
+	// A standalone file
+	standaloneFile := filepath.Join(dir, "favicon.ico")
+	require.NoError(t, os.WriteFile(standaloneFile, []byte("icon"), 0o644))
+
+	// A directory with files
+	cssDir := filepath.Join(dir, "css")
+	require.NoError(t, os.MkdirAll(cssDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "style.css"), []byte("body{}"), 0o644))
+
+	cfg := minimalConfig()
+	cfg.Templates.Assets = []string{standaloneFile, cssDir}
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	require.NoError(t, gen.Generate(cfg, nil, WithInMemory(memFS)))
+
+	// Both should be in the memFS
+	faviconEntry, ok := memFS[standaloneFile]
+	require.True(t, ok, "favicon should exist in memFS")
+	assert.Equal(t, "icon", string(faviconEntry.Data))
+
+	cssEntry, ok := memFS[filepath.Join(cssDir, "style.css")]
+	require.True(t, ok, "style.css should exist in memFS")
+	assert.Equal(t, "body{}", string(cssEntry.Data))
+}
+
 // assertGoldenFile compares the content of actualPath against a golden file in testdata/.
 // When -update is set, it writes the actual content as the new golden file.
 func assertGoldenFile(t *testing.T, actualPath, goldenName string) {
