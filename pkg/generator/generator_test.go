@@ -3,12 +3,13 @@ package generator
 import (
 	"bytes"
 	"flag"
-	html "html/template"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
+
+	html "html/template"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
