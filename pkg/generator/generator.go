@@ -52,12 +52,12 @@ type Generator struct {
 	sitemapTmpl   *text.Template
 }
 
-// NewOption configures a Generator during construction.
-type NewOption func(*Generator) error
+// Option configures a Generator during construction.
+type Option func(*Generator) error
 
 // WithTemplates configures user-provided template partials. User-defined
 // {{define "head"}} and {{define "body"}} blocks override the built-in defaults.
-func WithTemplates(tmplCfg config.TemplatesConfig) NewOption {
+func WithTemplates(tmplCfg config.TemplatesConfig) Option {
 	return func(g *Generator) error {
 		if !tmplCfg.HasCustomTemplates() {
 			return nil
@@ -96,7 +96,7 @@ func WithTemplates(tmplCfg config.TemplatesConfig) NewOption {
 
 // New parses embedded templates and returns a ready-to-use Generator.
 // Use WithTemplates to apply user-provided template partials.
-func New(opts ...NewOption) (*Generator, error) {
+func New(opts ...Option) (*Generator, error) {
 	moduleTmpl, err := html.New("module.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/module.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing module template: %w", err)
@@ -193,11 +193,11 @@ type generateConfig struct {
 	memFS    fstest.MapFS
 }
 
-// Option configures Generate behavior.
-type Option func(*generateConfig)
+// GenerateOption configures Generate behavior.
+type GenerateOption func(*generateConfig)
 
 // WithInMemory causes Generate to write to the provided MapFS instead of disk.
-func WithInMemory(fs fstest.MapFS) Option {
+func WithInMemory(fs fstest.MapFS) GenerateOption {
 	return func(c *generateConfig) {
 		c.inMemory = true
 		c.memFS = fs
@@ -270,7 +270,7 @@ func buildModuleData(cfg *config.Config, subpackages map[string][]string) []Modu
 
 // Generate renders all pages from the config. By default, it writes to disk
 // using cfg.Output.Dir. Use WithInMemory to write to an in-memory filesystem instead.
-func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string, opts ...Option) error {
+func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string, opts ...GenerateOption) error {
 	gc := &generateConfig{}
 	for _, opt := range opts {
 		opt(gc)

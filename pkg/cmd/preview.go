@@ -22,7 +22,7 @@ func (p *PreviewCmd) Run(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	var opts []generator.NewOption
+	var opts []generator.Option
 	if cfg.Templates.HasCustomTemplates() {
 		opts = append(opts, generator.WithTemplates(cfg.Templates))
 	}
