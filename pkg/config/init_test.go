@@ -109,6 +109,14 @@ func TestWriteDefault_RoundTrips(t *testing.T) {
 	assert.Equal(t, example.Modules[0].Subpackages.Mode, cfg.Modules[0].Subpackages.Mode)
 	assert.Equal(t, example.Modules[0].Subpackages.Exclude, cfg.Modules[0].Subpackages.Exclude)
 	assert.Equal(t, example.Modules[0].Subpackages.Paths, cfg.Modules[0].Subpackages.Paths)
+
+	// Templates
+	assert.Equal(t, example.Templates.Index, cfg.Templates.Index)
+	assert.Equal(t, example.Templates.Module, cfg.Templates.Module)
+	assert.Equal(t, example.Templates.Submodule, cfg.Templates.Submodule)
+	assert.Equal(t, example.Templates.NotFound, cfg.Templates.NotFound)
+	assert.Equal(t, example.Templates.Partials, cfg.Templates.Partials)
+	assert.Equal(t, example.Templates.Assets, cfg.Templates.Assets)
 }
 
 func TestCommentedDefault_AllFieldsCovered(t *testing.T) {
@@ -142,6 +150,13 @@ func TestCommentedDefault_AllFieldsCovered(t *testing.T) {
 		"$.modules[0].subpackages.mode",
 		"$.modules[0].subpackages.exclude",
 		"$.modules[0].subpackages.paths",
+		"$.templates",
+		"$.templates.index",
+		"$.templates.module",
+		"$.templates.submodule",
+		"$.templates.not_found",
+		"$.templates.partials",
+		"$.templates.assets",
 	}
 
 	for _, key := range expectedKeys {
