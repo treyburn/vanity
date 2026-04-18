@@ -125,8 +125,13 @@ func validateTemplates(t *TemplatesConfig) error {
 			errs = errors.Join(errs, ValidationError{fmt.Errorf("templates: %q is a directory, expected a file", path)})
 			continue
 		}
-		// Parse with the shared FuncMap so custom function calls don't cause false errors
-		if _, err := html.New(filepath.Base(path)).Funcs(tmpl.FuncMap).Parse(string(mustReadFile(path))); err != nil {
+		// Read and parse with the shared FuncMap so custom function calls don't cause false errors
+		content, err := os.ReadFile(filepath.Clean(path))
+		if err != nil {
+			errs = errors.Join(errs, ValidationError{fmt.Errorf("templates: %q could not be read: %w", path, err)})
+			continue
+		}
+		if _, err = html.New(filepath.Base(path)).Funcs(tmpl.FuncMap).Parse(string(content)); err != nil {
 			errs = errors.Join(errs, ValidationError{fmt.Errorf("templates: %q has invalid syntax: %w", path, err)})
 		}
 	}
@@ -139,16 +144,6 @@ func validateTemplates(t *TemplatesConfig) error {
 	}
 
 	return errs
-}
-
-// mustReadFile reads a file and returns its contents. It panics on error,
-// but callers should have already verified the file exists via os.Stat.
-func mustReadFile(path string) []byte {
-	data, err := os.ReadFile(filepath.Clean(path))
-	if err != nil {
-		panic(fmt.Sprintf("reading %q after stat succeeded: %v", path, err))
-	}
-	return data
 }
 
 // ValidateFull runs ValidateBasic plus expensive remote checks.
