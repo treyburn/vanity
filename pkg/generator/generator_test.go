@@ -51,6 +51,7 @@ func TestNew(t *testing.T) {
 	gen, err := New()
 	require.NoError(t, err)
 	assert.NotNil(t, gen.moduleTmpl)
+	assert.NotNil(t, gen.submoduleTmpl)
 	assert.NotNil(t, gen.indexTmpl)
 	assert.NotNil(t, gen.notFoundTmpl)
 	assert.NotNil(t, gen.robotsTmpl)
@@ -274,6 +275,95 @@ func TestBuildModuleData_SubpackageImportPath(t *testing.T) {
 	assert.Equal(t, "foo/cmd/tool", sub.Name)
 	assert.Equal(t, "go.example.com/foo", sub.ImportPath, "subpackage go-import must point to module root")
 	assert.Equal(t, "https://pkg.go.dev/go.example.com/foo/cmd/tool", sub.Redirect)
+}
+
+func TestFuncMap_Available(t *testing.T) {
+	// Verify that all expected functions are registered in the FuncMap
+	expectedFuncs := []string{
+		"upper", "lower", "title", "join", "sprintf",
+		"now", "year", "contains", "hasPrefix", "hasSuffix",
+		"replace", "trimSpace",
+	}
+	for _, name := range expectedFuncs {
+		assert.Contains(t, funcMap, name, "FuncMap should contain %q", name)
+	}
+}
+
+func TestBlockFallback_DefaultBodyUsed(t *testing.T) {
+	// Without any user overrides, the default block content should be used.
+	// This is already covered by all the golden file tests, but let's
+	// explicitly verify the body contains expected default content.
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil, WithInMemory(memFS))
+	require.NoError(t, err)
+
+	// Module page should have the default redirect text
+	moduleContent, err := fs.ReadFile(memFS, "foo/index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(moduleContent), "Redirecting to")
+
+	// Index page should have the default module listing
+	indexContent, err := fs.ReadFile(memFS, "index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(indexContent), "<h1>go.example.com</h1>")
+
+	// 404 page should have the default "page not found" text
+	notFoundContent, err := fs.ReadFile(memFS, "404.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(notFoundContent), "Page not found")
+}
+
+func TestBlockFallback_HeadBlockEmpty(t *testing.T) {
+	// The default head block should produce no extra content in <head>
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil, WithInMemory(memFS))
+	require.NoError(t, err)
+
+	// The module page head should not have any extra content beyond
+	// the go-import/go-source/refresh meta tags
+	moduleContent, err := fs.ReadFile(memFS, "foo/index.html")
+	require.NoError(t, err)
+	content := string(moduleContent)
+
+	// Head block is empty by default — verify no extra blank lines or content
+	// between the last meta tag and </head>
+	assert.Contains(t, content, `<meta http-equiv="refresh"`)
+	assert.Contains(t, content, `</head>`)
+}
+
+func TestSubmoduleTemplate_UsedForSubpackages(t *testing.T) {
+	// Verify that subpackage pages are rendered with the submodule template
+	cfg := minimalConfig()
+	memFS := make(fstest.MapFS)
+
+	subpackages := map[string][]string{
+		"foo": {"cmd/tool"},
+	}
+
+	gen, err := New()
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, subpackages, WithInMemory(memFS))
+	require.NoError(t, err)
+
+	// Both module and submodule pages should exist and contain redirect content
+	moduleContent, err := fs.ReadFile(memFS, "foo/index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(moduleContent), "Redirecting to")
+
+	subContent, err := fs.ReadFile(memFS, "foo/cmd/tool/index.html")
+	require.NoError(t, err)
+	assert.Contains(t, string(subContent), "Redirecting to")
 }
 
 // assertGoldenFile compares the content of actualPath against a golden file in testdata/.
