@@ -2,7 +2,6 @@ package generator
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,15 +13,8 @@ import (
 	text "text/template"
 
 	"go.treyburn.dev/vanity/pkg/config"
+	"go.treyburn.dev/vanity/pkg/tmpl"
 )
-
-// template is satisfied by both html/template.Template and text/template.Template.
-type template interface {
-	Execute(wr io.Writer, data any) error
-}
-
-//go:embed templates/*
-var templateFS embed.FS
 
 // ModuleData holds the template context for a single module page.
 type ModuleData struct {
@@ -97,32 +89,32 @@ func WithTemplates(tmplCfg config.TemplatesConfig) Option {
 // New parses embedded templates and returns a ready-to-use Generator.
 // Use WithTemplates to apply user-provided template partials.
 func New(opts ...Option) (*Generator, error) {
-	moduleTmpl, err := html.New("module.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/module.html.tmpl")
+	moduleTmpl, err := html.New("module.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/module.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing module template: %w", err)
 	}
 
-	submoduleTmpl, err := html.New("submodule.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/submodule.html.tmpl")
+	submoduleTmpl, err := html.New("submodule.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/submodule.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing submodule template: %w", err)
 	}
 
-	indexTmpl, err := html.New("index.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/index.html.tmpl")
+	indexTmpl, err := html.New("index.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/index.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing index template: %w", err)
 	}
 
-	notFoundTmpl, err := html.New("not_found.html.tmpl").Funcs(funcMap).ParseFS(templateFS, "templates/not_found.html.tmpl")
+	notFoundTmpl, err := html.New("not_found.html.tmpl").Funcs(tmpl.FuncMap).ParseFS(tmpl.Templates, "templates/not_found.html.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing not_found template: %w", err)
 	}
 
-	robotsTmpl, err := text.ParseFS(templateFS, "templates/robots.txt.tmpl")
+	robotsTmpl, err := text.ParseFS(tmpl.Templates, "templates/robots.txt.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing robots template: %w", err)
 	}
 
-	sitemapTmpl, err := text.ParseFS(templateFS, "templates/sitemap.xml.tmpl")
+	sitemapTmpl, err := text.ParseFS(tmpl.Templates, "templates/sitemap.xml.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("parsing sitemap template: %w", err)
 	}
@@ -289,7 +281,7 @@ func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string
 	siteData := SiteData{Domain: cfg.Domain, Modules: modules}
 
 	// render gets a writer from the config and renders the template into it.
-	render := func(path string, tmpl template, data any) error {
+	render := func(path string, tmpl tmpl.Template, data any) error {
 		w, err := gc.writer(cfg.Output.Dir, path)
 		if err != nil {
 			return err

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"go.treyburn.dev/vanity/pkg/config"
+	"go.treyburn.dev/vanity/pkg/tmpl"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -280,18 +281,6 @@ func TestBuildModuleData_SubpackageImportPath(t *testing.T) {
 	assert.Equal(t, "https://pkg.go.dev/go.example.com/foo/cmd/tool", sub.Redirect)
 }
 
-func TestFuncMap_Available(t *testing.T) {
-	// Verify that all expected functions are registered in the FuncMap
-	expectedFuncs := []string{
-		"upper", "lower", "title", "join", "sprintf",
-		"now", "year", "contains", "hasPrefix", "hasSuffix",
-		"replace", "trimSpace",
-	}
-	for _, name := range expectedFuncs {
-		assert.Contains(t, funcMap, name, "FuncMap should contain %q", name)
-	}
-}
-
 func TestBlockFallback_DefaultBodyUsed(t *testing.T) {
 	// Without any user overrides, the default block content should be used.
 	// This is already covered by all the golden file tests, but let's
@@ -373,7 +362,7 @@ func TestSubmoduleTemplate_UsedForSubpackages(t *testing.T) {
 
 func baseTemplate(t *testing.T) *html.Template {
 	t.Helper()
-	tmpl, err := html.New("test").Funcs(funcMap).Parse(
+	tmpl, err := html.New("test").Funcs(tmpl.FuncMap).Parse(
 		`<head>{{block "head" .}}{{end}}</head><body>{{block "body" .}}default{{end}}</body>`)
 	require.NoError(t, err)
 	return tmpl
