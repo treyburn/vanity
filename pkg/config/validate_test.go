@@ -337,6 +337,159 @@ func TestValidateFull_UnreachableRepo(t *testing.T) {
 	assert.Contains(t, err.Error(), "not reachable")
 }
 
+// --- Template validation tests ---
+
+func TestValidateBasic_TemplatesFileNotExist(t *testing.T) {
+	cfg := validConfig()
+	cfg.Templates.Index = "/nonexistent/index.html"
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not exist")
+	assertIsValidationErr(t, err)
+}
+
+func TestValidateBasic_TemplatesFileIsDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	cfg := validConfig()
+	cfg.Templates.Module = dir
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "is a directory")
+}
+
+func TestValidateBasic_TemplatesBadSyntax(t *testing.T) {
+	dir := t.TempDir()
+	badTemplate := filepath.Join(dir, "bad.html")
+	require.NoError(t, os.WriteFile(badTemplate, []byte(`{{define "body"}}`), 0o644)) // missing {{end}}
+
+	cfg := validConfig()
+	cfg.Templates.Index = badTemplate
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid syntax")
+}
+
+func TestValidateBasic_TemplatesValidFile(t *testing.T) {
+	dir := t.TempDir()
+	tmplPath := filepath.Join(dir, "index.html")
+	require.NoError(t, os.WriteFile(tmplPath, []byte(`{{define "body"}}<h1>hello</h1>{{end}}`), 0o644))
+
+	cfg := validConfig()
+	cfg.Templates.Index = tmplPath
+
+	err := ValidateBasic(cfg)
+	assert.NoError(t, err)
+}
+
+func TestValidateBasic_TemplatesPartials(t *testing.T) {
+	dir := t.TempDir()
+	headerPath := filepath.Join(dir, "header.html")
+	require.NoError(t, os.WriteFile(headerPath, []byte(`{{define "header"}}<nav>hi</nav>{{end}}`), 0o644))
+
+	cfg := validConfig()
+	cfg.Templates.Partials = []string{headerPath}
+
+	err := ValidateBasic(cfg)
+	assert.NoError(t, err)
+}
+
+func TestValidateBasic_TemplatesPartialNotExist(t *testing.T) {
+	cfg := validConfig()
+	cfg.Templates.Partials = []string{"/nonexistent/header.html"}
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not exist")
+}
+
+func TestValidateBasic_AssetsNotExist(t *testing.T) {
+	cfg := validConfig()
+	cfg.Templates.Assets = []string{"/nonexistent/css/"}
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "templates.assets")
+	assert.Contains(t, err.Error(), "does not exist")
+}
+
+func TestValidateBasic_AssetsExist(t *testing.T) {
+	dir := t.TempDir()
+	cssDir := filepath.Join(dir, "css")
+	require.NoError(t, os.MkdirAll(cssDir, 0o750))
+
+	cfg := validConfig()
+	cfg.Templates.Assets = []string{cssDir}
+
+	err := ValidateBasic(cfg)
+	assert.NoError(t, err)
+}
+
+func TestValidateBasic_NoTemplatesNoError(t *testing.T) {
+	cfg := validConfig()
+	// No templates configured at all
+	err := ValidateBasic(cfg)
+	assert.NoError(t, err)
+}
+
+func TestValidateBasic_MultipleTemplateErrors(t *testing.T) {
+	cfg := validConfig()
+	cfg.Templates.Index = "/nonexistent/index.html"
+	cfg.Templates.Module = "/nonexistent/module.html"
+	cfg.Templates.Assets = []string{"/nonexistent/css/"}
+
+	err := ValidateBasic(cfg)
+	require.Error(t, err)
+	msg := err.Error()
+	assert.Contains(t, msg, "index.html")
+	assert.Contains(t, msg, "module.html")
+	assert.Contains(t, msg, "css")
+}
+
+func TestValidateAssetCollisions_WithCollision(t *testing.T) {
+	dir := t.TempDir()
+	// Create a file called "index.html" as an asset — collides with generated index
+	indexPath := filepath.Join(dir, "index.html")
+	require.NoError(t, os.WriteFile(indexPath, []byte("<html>asset</html>"), 0o644))
+
+	cfg := validConfig()
+	cfg.Templates.Assets = []string{indexPath}
+
+	err := validateAssetCollisions(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "collide")
+}
+
+func TestValidateAssetCollisions_NoCollision(t *testing.T) {
+	dir := t.TempDir()
+	cssDir := filepath.Join(dir, "css")
+	require.NoError(t, os.MkdirAll(cssDir, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(cssDir, "style.css"), []byte("body{}"), 0o644))
+
+	cfg := validConfig()
+	cfg.Templates.Assets = []string{cssDir}
+
+	err := validateAssetCollisions(cfg)
+	assert.NoError(t, err)
+}
+
+func TestValidateAssetCollisions_CollidesWithModuleName(t *testing.T) {
+	dir := t.TempDir()
+	// Create a file named same as a module
+	fooPath := filepath.Join(dir, "foo")
+	require.NoError(t, os.WriteFile(fooPath, []byte("asset"), 0o644))
+
+	cfg := validConfig()
+	cfg.Templates.Assets = []string{fooPath}
+
+	err := validateAssetCollisions(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "collide")
+}
+
 // assertIsValidationErr verifies that the error tree contains a ValidationError.
 func assertIsValidationErr(t *testing.T, err error) {
 	t.Helper()
