@@ -346,5 +346,72 @@ func (g *Generator) Generate(cfg *config.Config, subpackages map[string][]string
 		slog.Debug("generated sitemap.xml")
 	}
 
+	// Copy static assets
+	if len(cfg.Templates.Assets) > 0 {
+		if err := copyAssets(cfg.Templates.Assets, gc, cfg.Output.Dir); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// copyAssets copies static asset files and directories into the output directory.
+// Assets are copied preserving their relative path structure.
+func copyAssets(assets []string, gc *generateConfig, outputDir string) error {
+	for _, assetPath := range assets {
+		info, err := os.Stat(assetPath)
+		if err != nil {
+			return fmt.Errorf("asset %q: %w", assetPath, err)
+		}
+
+		if info.IsDir() {
+			if err := copyDir(assetPath, gc, outputDir); err != nil {
+				return fmt.Errorf("copying asset directory %q: %w", assetPath, err)
+			}
+		} else {
+			if err := copyFile(assetPath, assetPath, gc, outputDir); err != nil {
+				return fmt.Errorf("copying asset file %q: %w", assetPath, err)
+			}
+		}
+	}
+	return nil
+}
+
+// copyDir recursively copies a directory's contents into the output.
+func copyDir(dirPath string, gc *generateConfig, outputDir string) error {
+	return filepath.WalkDir(dirPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		return copyFile(path, path, gc, outputDir)
+	})
+}
+
+// copyFile reads a source file and writes it to the output via generateConfig.writer.
+func copyFile(srcPath, outputPath string, gc *generateConfig, outputDir string) error {
+	data, err := os.ReadFile(filepath.Clean(srcPath))
+	if err != nil {
+		return fmt.Errorf("reading %q: %w", srcPath, err)
+	}
+
+	w, err := gc.writer(outputDir, outputPath)
+	if err != nil {
+		return fmt.Errorf("creating output for %q: %w", outputPath, err)
+	}
+	defer func() {
+		if cerr := w.Close(); cerr != nil {
+			slog.Debug("failed to close asset file", "error", cerr, "file", outputPath)
+		}
+	}()
+
+	if _, err := w.Write(data); err != nil {
+		return fmt.Errorf("writing %q: %w", outputPath, err)
+	}
+
+	slog.Debug("copied asset", "path", outputPath)
 	return nil
 }
