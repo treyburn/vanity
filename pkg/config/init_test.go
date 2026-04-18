@@ -71,6 +71,7 @@ func TestWriteDefault(t *testing.T) {
 	assert.Contains(t, output, "Output settings")
 	assert.Contains(t, output, "REQUIRED")
 	assert.Contains(t, output, "Module definitions")
+	assert.Contains(t, output, "Custom templates")
 }
 
 func TestWriteDefault_RoundTrips(t *testing.T) {
