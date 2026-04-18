@@ -1,0 +1,10 @@
+{{define "body"}}
+  <div class="custom-index">
+    <h1>Welcome to {{.Domain}}</h1>
+    <ul>
+    {{- range .Modules}}
+      <li><a href="/{{.Name}}">{{upper .Name}}</a></li>
+    {{- end}}
+    </ul>
+  </div>
+{{end}}

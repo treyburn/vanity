@@ -48,7 +48,7 @@ func minimalConfig() *config.Config {
 }
 
 func TestNew(t *testing.T) {
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 	assert.NotNil(t, gen.moduleTmpl)
 	assert.NotNil(t, gen.submoduleTmpl)
@@ -62,7 +62,7 @@ func TestGenerate_SingleModule(t *testing.T) {
 	cfg := minimalConfig()
 	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil)
@@ -80,7 +80,7 @@ func TestGenerate_GoSourceDisabled(t *testing.T) {
 	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
 	cfg.Modules[0].GoSource = new(false)
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil)
@@ -94,7 +94,7 @@ func TestGenerate_RedirectOverride(t *testing.T) {
 	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
 	cfg.Modules[0].Redirect = "https://custom.example.com/docs"
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil)
@@ -111,7 +111,7 @@ func TestGenerate_WithSubpackages(t *testing.T) {
 		"foo": {"cmd/tool", "pkg/lib"},
 	}
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, subpackages)
@@ -137,7 +137,7 @@ func TestGenerate_MultipleModules(t *testing.T) {
 		Redirect: "https://pkg.go.dev/go.example.com/bar",
 	})
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil)
@@ -157,7 +157,7 @@ func TestGenerate_OptionalOutputsDisabled(t *testing.T) {
 	cfg.Output.Robots = false
 	cfg.Output.Sitemap = false
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil)
@@ -185,7 +185,7 @@ func TestGenerate_CleanRemovesExistingDir(t *testing.T) {
 	cfg.Output.Dir = outputDir
 	cfg.Output.Clean = true
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil)
@@ -201,7 +201,7 @@ func TestGenerate_NestedOutputDir(t *testing.T) {
 	cfg := minimalConfig()
 	cfg.Output.Dir = filepath.Join(t.TempDir(), "some", "dir", "dist")
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil)
@@ -215,7 +215,7 @@ func TestGenerate_NestedOutputDir(t *testing.T) {
 func TestGenerate_InMemory(t *testing.T) {
 	cfg := minimalConfig()
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	memFS := make(fstest.MapFS)
@@ -235,7 +235,7 @@ func TestGenerate_InMemoryMatchesDisk(t *testing.T) {
 	diskDir := filepath.Join(t.TempDir(), "dist")
 	cfg.Output.Dir = diskDir
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	// Generate to disk
@@ -296,7 +296,7 @@ func TestBlockFallback_DefaultBodyUsed(t *testing.T) {
 	cfg := minimalConfig()
 	memFS := make(fstest.MapFS)
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil, WithInMemory(memFS))
@@ -323,7 +323,7 @@ func TestBlockFallback_HeadBlockEmpty(t *testing.T) {
 	cfg := minimalConfig()
 	memFS := make(fstest.MapFS)
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, nil, WithInMemory(memFS))
@@ -350,7 +350,7 @@ func TestSubmoduleTemplate_UsedForSubpackages(t *testing.T) {
 		"foo": {"cmd/tool"},
 	}
 
-	gen, err := New()
+	gen, err := New(config.TemplatesConfig{})
 	require.NoError(t, err)
 
 	err = gen.Generate(cfg, subpackages, WithInMemory(memFS))
@@ -364,6 +364,155 @@ func TestSubmoduleTemplate_UsedForSubpackages(t *testing.T) {
 	subContent, err := fs.ReadFile(memFS, "foo/cmd/tool/index.html")
 	require.NoError(t, err)
 	assert.Contains(t, string(subContent), "Redirecting to")
+}
+
+// --- Custom template tests ---
+
+func fixturesDir() string {
+	return filepath.Join("testdata", "custom_templates", "fixtures")
+}
+
+func TestGenerate_CustomModuleBody(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_body.html"),
+	}
+
+	gen, err := New(tmplCfg)
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/custom_module_body.html")
+}
+
+func TestGenerate_CustomHeadAndBody(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_head_and_body.html"),
+	}
+
+	gen, err := New(tmplCfg)
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/custom_head_and_body.html")
+}
+
+func TestGenerate_CustomIndex(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Index: filepath.Join(fixturesDir(), "index_body.html"),
+	}
+
+	gen, err := New(tmplCfg)
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "index.html"), "custom_templates/custom_index.html")
+}
+
+func TestGenerate_SubmoduleFallbackToModule(t *testing.T) {
+	// When only module template is specified, submodules should use it too
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_body.html"),
+	}
+
+	subpackages := map[string][]string{
+		"foo": {"cmd/tool"},
+	}
+
+	gen, err := New(tmplCfg)
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, subpackages)
+	require.NoError(t, err)
+
+	// Submodule page should use the module template's body override
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "cmd", "tool", "index.html"), "custom_templates/submodule_fallback.html")
+}
+
+func TestGenerate_SeparateSubmoduleTemplate(t *testing.T) {
+	// When both module and submodule templates are specified, each uses its own
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module:    filepath.Join(fixturesDir(), "module_body.html"),
+		Submodule: filepath.Join(fixturesDir(), "submodule_body.html"),
+	}
+
+	subpackages := map[string][]string{
+		"foo": {"cmd/tool"},
+	}
+
+	gen, err := New(tmplCfg)
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, subpackages)
+	require.NoError(t, err)
+
+	// Module uses module template
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/custom_module_body.html")
+	// Submodule uses its own template
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "cmd", "tool", "index.html"), "custom_templates/separate_submodule.html")
+}
+
+func TestGenerate_CompositionPartials(t *testing.T) {
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_with_composition.html"),
+		Partials: []string{
+			filepath.Join(fixturesDir(), "header.html"),
+			filepath.Join(fixturesDir(), "footer.html"),
+		},
+	}
+
+	gen, err := New(tmplCfg)
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "foo", "index.html"), "custom_templates/composition.html")
+}
+
+func TestGenerate_CustomTemplateDoesNotAffectDefaults(t *testing.T) {
+	// Specifying a module template should not affect index/404/robots/sitemap defaults
+	cfg := minimalConfig()
+	cfg.Output.Dir = filepath.Join(t.TempDir(), "dist")
+
+	tmplCfg := config.TemplatesConfig{
+		Module: filepath.Join(fixturesDir(), "module_body.html"),
+	}
+
+	gen, err := New(tmplCfg)
+	require.NoError(t, err)
+
+	err = gen.Generate(cfg, nil)
+	require.NoError(t, err)
+
+	// These should match the original golden files (unchanged defaults)
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "index.html"), "single_module/index.html")
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "404.html"), "single_module/404.html")
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "robots.txt"), "single_module/robots.txt")
+	assertGoldenFile(t, filepath.Join(cfg.Output.Dir, "sitemap.xml"), "single_module/sitemap.xml")
 }
 
 // assertGoldenFile compares the content of actualPath against a golden file in testdata/.
