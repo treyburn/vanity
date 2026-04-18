@@ -19,8 +19,12 @@ Only the index page is customized. Module, submodule, and 404 pages use vanity's
 
 ```shell
 # preview the example
-cd examples/custom-templates
 vanity preview
+```
+
+```shell
+# alternatively - generate the example pages and serve
+vanity generate && vanity serve
 ```
 
 Then open http://localhost:8080 in your browser.
