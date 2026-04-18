@@ -107,6 +107,25 @@ func ValidateBasic(cfg *Config) error {
 	return errs
 }
 
+// validationFuncMap is a stub FuncMap that registers the same function names
+// as the generator's FuncMap. This allows template parse-checking to succeed
+// without the config package depending on the generator package.
+// The implementations are trivial — actual behavior comes from the generator.
+var validationFuncMap = html.FuncMap{
+	"upper":     func(s string) string { return s },
+	"lower":     func(s string) string { return s },
+	"title":     func(s string) string { return s },
+	"join":      func(elems []string, sep string) string { return "" },
+	"sprintf":   fmt.Sprintf,
+	"now":       func() any { return nil },
+	"year":      func() int { return 0 },
+	"contains":  func(s, substr string) bool { return false },
+	"hasPrefix": func(s, prefix string) bool { return false },
+	"hasSuffix": func(s, suffix string) bool { return false },
+	"replace":   func(s, old, new string) string { return s },
+	"trimSpace": func(s string) string { return s },
+}
+
 // validateTemplates checks that template files exist, parse correctly, and
 // that asset paths exist. It also checks for collisions between assets and
 // generated output files.
@@ -124,8 +143,8 @@ func validateTemplates(t *TemplatesConfig) error {
 			errs = errors.Join(errs, ValidationError{fmt.Errorf("templates: %q is a directory, expected a file", path)})
 			continue
 		}
-		// Try parsing the template to catch syntax errors
-		if _, err := html.New(filepath.Base(path)).Parse(string(mustReadFile(path))); err != nil {
+		// Parse with the validation FuncMap so custom function calls don't cause false errors
+		if _, err := html.New(filepath.Base(path)).Funcs(validationFuncMap).Parse(string(mustReadFile(path))); err != nil {
 			errs = errors.Join(errs, ValidationError{fmt.Errorf("templates: %q has invalid syntax: %w", path, err)})
 		}
 	}
