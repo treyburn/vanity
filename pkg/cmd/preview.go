@@ -22,7 +22,12 @@ func (p *PreviewCmd) Run(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	gen, err := generator.New(cfg.Templates)
+	var opts []generator.NewOption
+	if cfg.Templates.HasCustomTemplates() {
+		opts = append(opts, generator.WithTemplates(cfg.Templates))
+	}
+
+	gen, err := generator.New(opts...)
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,12 @@ type GenerateCmd struct{}
 
 // Run generates the static site.
 func (g *GenerateCmd) Run(ctx context.Context, cfg *config.Config) error {
-	gen, err := generator.New(cfg.Templates)
+	var opts []generator.NewOption
+	if cfg.Templates.HasCustomTemplates() {
+		opts = append(opts, generator.WithTemplates(cfg.Templates))
+	}
+
+	gen, err := generator.New(opts...)
 	if err != nil {
 		return err
 	}
